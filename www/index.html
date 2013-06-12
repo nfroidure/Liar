@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html><!-- manifest="application.manifest" >-->
+<head>
+	<meta charset="utf-8" />
+	<title>Liar : Fool or be fooled !</title>
+	<meta name="description" content="Liar is a simple game were you must find the most believable false answer to a question. Than, users bet for the right answer, if the answer is true, you keep your bet, otherwise, the lie author get the points." />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+	<link rel="stylesheet" type="text/css" href="css/styles.css" />
+        <!-- data-main attribute tells require.js to load
+             scripts/main.js after require.js loads. -->
+        <script data-main="javascript/Application" src="javascript/libs/requirejs/require.js"></script>
+</head>
+<body>
+	<div class="app">
+		<div class="message"><p>-</p></div>
+		<div class="view" id="Home">
+			<h1>Lyer</h1>
+			<ul class="menu">
+				<li><a href="app:Home/menu?view=Rooms"
+					title="Jouer en solo">Play</a></li>
+				<li><a href="app:Home/menu?view=Options"
+					title="Manage game options">Options</a></li>
+				<li><a href="app:Home/menu?view=About"
+					title="Learn more about this game">About</a></li>
+			</ul>
+		</div>
+		<div class="view" id="Options">
+			<h1>Options</h1>
+			<form action="app:Options/send">
+				<p>
+					<label>Sound&nbsp;:<br />
+						<select id="sounds">
+							<option value="0" />&nbsp;Off</option>
+							<option value="1" selected="selected" />&nbsp;On</option>
+						</select>
+					<br /><br />
+					<label><input type="checkbox" value="1" id="fullscreen" /> Fullscreen</label>
+					<br /><br />
+					<input type="submit" value="Cancel" formaction="app:Options/back" />
+					<input type="submit" value="Save" />
+				</p>
+			</form>
+		</div>
+		<div class="view" id="About">
+			<h1>About this game</h1>
+			<p class="text">
+				Lyer is a game made by Nicolas Froidure, lear more about him on his
+				<a href="http://www.insertafter.com/blog.html" title="Go to his blog">blog</a>.
+			</p>
+			<p class="text">
+				This game is released under the GNU/GPL licence, use it at your own risk !
+			</p>
+			<h2>Thanks</h2>
+			<p class="text">
+				Big thanks to people who made the sounds used by this game:
+			</p>
+			<ul class="text">
+				<li>Applause sound&nbsp;: <a href="http://qubodup.net/"
+					title="View his website">Iwan Gabovitch</a></li>
+				<li>Aler sounds&nbsp;: <a href="http://opengameart.org/users/dklon"
+					title="View his website">Devin Watson</a></li>
+			</ul>
+			<p class="menu"><a href="app:About/back" title="Back to home">Back</a></p>
+		</div>
+		<div class="view" id="Profile">
+			<h1>Profil</h1>
+			<form action="app:Profile/send" data-change="app:Profile/change">
+				<p>
+					<label>Name&nbsp;:<br />
+					<input type="text" name="username" required="required"
+						pattern="([^<>&quot;]+)" placeholder="Your name" maxlength="15" />
+					<br /><br />
+					Gender&nbsp;:<br />
+					<label><input type="radio" name="genre" value="-1" checked="checked" />&nbsp;No matter</label>
+					<label><input type="radio" name="genre" value="1" />&nbsp;Male</label><br/>
+					<label><input type="radio" name="genre" value="0" />&nbsp;Female</label>
+					<br /><br />
+					<input type="submit" value="Cancel" formaction="app:Profile/back" />
+					<input type="submit" value="Save" />
+				</p>
+			</form>
+		</div>
+		<div class="view" id="Rooms">
+			<h1>Rooms</h1>
+			<table>
+				<thead><tr>
+					<th>Name</th>
+					<th>Players</th>
+					<th>Type</th>
+				</tr></thead>
+				<tbody><tr><td><a href="app:Rooms/join?room=" title="Join this room">Room 1</a></td><td>0/6</td><td>Normal</td></tr></tbody>
+			</table>
+			<p class="menu">
+				<a href="app:Rooms/back" title="Back to home">Back</a>
+				<a href="app:Rooms/menu?view=Profile" title="Change your profile">Profile</a>
+				<a href="app:Rooms/menu?view=NewRoom" title="Create a new room">New</a>
+				<a href="app:Rooms/refresh" title="Refresh the room list">Refresh</a>
+			</p>
+		</div>
+		<div class="view" id="NewRoom">
+			<h1>Create a Room</h1>
+			<form action="app:NewRoom/send" data-change="app:NewRoom/change">
+				<p>
+					<label>Name&nbsp;:<br />
+					<input type="text" name="name" required="required"
+						pattern="([^<>&quot;]+)" placeholder="Room name" maxlength="30" />
+					<br /><br />
+					Mode&nbsp;:<br />
+					<label><input type="radio" name="mode" value="-1" checked="checked" />&nbsp;Normal</label>
+					<label><input type="radio" name="mode" value="1" disabled="disabled"/>&nbsp;Arcade</label>
+					<br /><br />
+					<input type="submit" value="Cancel" formaction="app:NewRoom/back" />
+					<input type="submit" value="Save" />
+				</p>
+			</form>
+		</div>
+		<div class="view" id="Connecting">
+			<h1>Connecting</h1>
+			<p class="text">Please wait while connecting...</p>
+		</div>
+		<div class="view" id="Network">
+			<h1>Network issue</h1>
+			<p class="text">Sorry, but i was unable to connect to the server. Check your connection or retry later.</p>
+		</div>
+		<div class="view" id="Room">
+			<h1>Room name <span>0/3</span></h1>
+			<p class="chat"></p>
+			<form action="app:Room/send">
+				<p>
+					<label>Message&nbsp;:<br />
+					<input type="text" name="message" required="required"
+						placeholder="Your message" />
+					</label>
+					<input type="submit" value="Send" />
+				</p>
+			</form>
+			<p class="menu">
+				<a href="app:Room/back" title="Retour à la liste des salons">Quitter</a>
+				<a href="app:Room/play" title="Démarrer la partie" disabled="disabled">Play</a>
+				<a href="app:Room/notify" title="Notify me when the game can start">Notify me</a>
+			</p>
+		</div>
+		<div class="view" id="Game">
+			<ul class="infos">
+				<li><strong>Score&nbsp;: <span>0</span></strong></li>
+				<li><strong>Points&nbsp;: <span>10</span></strong></li>
+				<li><strong>Turn&nbsp;: <span>0</span></strong></li>
+			</ul>
+		</div>
+	</div><div class="separator"></div></div>
+</body>
+</html>
