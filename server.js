@@ -79,6 +79,7 @@ var httpServer=http.createServer(function (request, response) {
 				return {
 					'id':room.id,
 					'name':room.name,
+					'status':(room.game?1:0),
 					'players':room.players.length,
 					'mode':room.mode
 				};
@@ -234,7 +235,8 @@ var httpServer=http.createServer(function (request, response) {
 	); 
 }).listen(port);
 
-console.log('Server started on http://'+domain+':'+port+'/, serving directory :'+rootDirectory);
+console.log('Server started on http://'+domain+':'+port+'/, '
+	+'serving directory :'+rootDirectory);
 
 // WebSocket Server
 
@@ -304,15 +306,22 @@ wsServer.on('request', function(request) {
 						connections[sessid]=
 							{'connection':connection,'player':player};
 						player.id=++playersIds;
-						}
+					}
 					// stocking player infos
-					player.name=(''+msgContent.name).replace('&','&amp;').replace('<','&lt')
-						.replace('>','&gt').replace('"','&quot;');
-					player.gender=(msgContent.gender?msgContent.gender:0);
+					player.name=(''+msgContent.name).replace('&','&amp;')
+						.replace('<','&lt').replace('>','&gt')
+						.replace('"','&quot;').trim();
+					player.gender=0;
+					if(msgContent.gender&&msgContent.gender==1)
+						player.gender=1;
+					else if(msgContent.gender&&msgContent.gender==-1)
+						player.gender=-1;
 					console.log((new Date()) + ' ['+connection.remoteAddress+'-'
-						+(player?player.name+'('+player.id+')':'')+']: connection ('+sessid+').');
+						+(player?player.name+'('+player.id+')':'')+']: '
+						+'connection ('+sessid+').');
 					// sending connection sessid + player id
-					connection.sendUTF(JSON.stringify({'type':'connect','sessid':sessid,'id':player.id}));
+					connection.sendUTF(JSON.stringify({'type':'connect',
+						'sessid':sessid,'id':player.id}));
 					break;
 				// room join
 				case 'room':
@@ -321,29 +330,33 @@ wsServer.on('request', function(request) {
 						// ignore if full
 						if(room.id!=msgContent.room||room.players.length>6)
 							return false
+						// ignore if game started
+						if(room.game)
+							return false
 						// user already in the room
 						if(-1!==roomsConnects[room.id].indexOf(sessid)) {
 							console.log((new Date()) + ' ['+connection.remoteAddress+'-'
-								+(player?player.name+'('+player.id+')':'')+']: User already in the room.');
+								+(player?player.name+'('+player.id+')':'')+']: '
+								+'User already in the room.');
 							return true;
-							}
+						}
 						room.players.push(player);
 						// confirm user he enters the room
 						connection.sendUTF(JSON.stringify({'type':'room',
 							'room':room}));
 						// notify room players they must update
 						roomsConnects[room.id].forEach(function(destId) {
-							connections[destId].connection.sendUTF(JSON.stringify({'type':'join','player':player}));
-							});
+							connections[destId].connection.sendUTF(JSON.stringify(
+								{'type':'join','player':player})
+							);
+						});
 						roomsConnects[room.id].push(sessid);
 						connections[sessid].room=room;
 						return true;
-						})))
-						{
+						}))) {
 						connection.sendUTF(JSON.stringify({'type':'room','room':null}));
 						// removing the player
-						if(connections[sessid].room)
-							{
+						if(connections[sessid].room) {
 							var index=connections[sessid].room.players.indexOf(player);
 							if(-1!==index)
 								connections[sessid].room.players.splice(index,1)
@@ -351,13 +364,16 @@ wsServer.on('request', function(request) {
 								roomsConnects[connections[sessid].room.id].indexOf(sessid),1);
 							// notifying players
 							roomsConnects[connections[sessid].room.id].forEach(function(destId) {
-								connections[destId].connection.sendUTF(JSON.stringify({'type':'leave','player':player.id}));
-								});
+								connections[destId].connection.sendUTF(JSON.stringify(
+									{'type':'leave','player':player.id})
+								);
+							});
 							connections[sessid].room=null;
-							}
 						}
+					}
 					console.log((new Date()) + ' ['+connection.remoteAddress+'-'
-						+(player?player.name+'('+player.id+')':'')+']: room: ' + message.utf8Data);
+						+(player?player.name+'('+player.id+')':'')+']: '
+						+'room: ' + message.utf8Data);
 					break;
 				// mini chat
 				case 'chat':
@@ -371,45 +387,78 @@ wsServer.on('request', function(request) {
 						connections[destId].connection.sendUTF(JSON.stringify({
 							'type':'chat','player':player.name,
 							'message':msgContent.message}));
-						});
+					});
 					console.log((new Date()) + ' ['+connection.remoteAddress+'-'
-						+(player?player.name+'('+player.id+')':'')+']: Chat ('+msgContent.message+').');
+						+(player?player.name+'('+player.id+')':'')+']: '
+						+'Chat ('+msgContent.message+').');
 					break;
+				// start the game
+				case 'start':
+					if(!(connections[sessid]&&connections[sessid].room))
+						return;
+					// checking if start is possible
+					if(connections[sessid].room.players.length<3
+						||connections[sessid].room.game)
+						return;
+					// setting the game
+					connections[sessid].room.game={
+						'round':1,
+						'state':0,
+						'time':Date.now()
+					};
+					// giving points to players
+					connections[sessid].room.players.forEach(function(player) {
+						player.points=10;
+						player.score=0;
+					});
+					// sending the start signal to each player in the room
+					roomsConnects[connections[sessid].room.id].forEach(function(destId) {
+						connections[destId].connection.sendUTF(
+							JSON.stringify({'type':'start'})
+						);
+					});
+					console.log((new Date()) + ' ['+connection.remoteAddress+'-'
+						+(player?player.name+'('+player.id+')':'')+']: '
+						+'Start ('+connections[sessid].room.name+').');
+					
 				default:
 					console.log((new Date()) + ' ['+connection.remoteAddress+'-'
-						+(player?player.name+'('+player.id+')':'')+']: Unexpected message: ' + message.utf8Data);
+						+(player?player.name+'('+player.id+')':'')+']: '
+						+'Unexpected message: ' + message.utf8Data);
 					break;
-				}
 			}
-		});
-	// on écoute la fermeture des connections
-    connection.on('close', function(reasonCode, description) {
-		// si le client était connecté
-		if(connections[sessid])
-			{
-			// on supprime la connection au bout de 30 secondes
+		}
+	});
+	// listening for connections close
+	connection.on('close', function(reasonCode, description) {
+		// if the user was conected
+		if(connections[sessid]) {
+			// deleting the connection if no reco after 30s
 			connections[sessid].timeout=setTimeout(function() {
 				console.log((new Date()) + ' ['+connection.remoteAddress+'-'
-					+(player?player.name+'('+player.id+')':'')+']: Cleanup ('+sessid+').');
-				// on le retire du room dans lequel il était
-				if(connections[sessid].room)
-					{
+					+(player?player.name+'('+player.id+')':'')+']: '
+					+'Cleanup ('+sessid+').');
+				// removing the player from his room
+				if(connections[sessid].room) {
 					connections[sessid].room.players.splice(
 						connections[sessid].room.players.indexOf(player),1);
 					roomsConnects[connections[sessid].room.id].splice(
 						roomsConnects[connections[sessid].room.id].indexOf(sessid),1);
-					// notification des players du room
+					// notifying players
 					roomsConnects[connections[sessid].room.id].forEach(function(destId) {
-						connections[destId].connection.sendUTF(JSON.stringify({'type':'leave','player':player.id}));
-						});
-					}
+						connections[destId].connection.sendUTF(JSON.stringify(
+							{'type':'leave','player':player.id})
+						);
+					});
+				}
 				// on supprime la connection
 				delete connections[sessid];
-				},1000);
-			}
-		        console.log((new Date()) + ' ['+connection.remoteAddress+'-'
-				+(player?player.name+'('+player.id+')':'')+']: Disconnected ('+reasonCode+':'+description+' - '+sessid+').');
-		});
+			},1000);
+		}
+	        console.log((new Date()) + ' ['+connection.remoteAddress+'-'
+			+(player?player.name+'('+player.id+')':'')+']: '
+			+'Disconnected ('+reasonCode+':'+description+' - '+sessid+').');
 	});
+});
 
-console.log('Serveur websocket démarré.');
+console.log('WebSocket Server started.');

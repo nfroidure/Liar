@@ -34,7 +34,7 @@
 				pool=Promise.any(
 					// Handling the form
 					new CommandPromise(app.cmdMgr,'send',name).then(function(data) {
-						app.user={'name':data.element['username'].value};
+						app.user={'name':data.element['username'].value,'gender':-1};
 						end=true;
 						success();
 					}),

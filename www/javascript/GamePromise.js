@@ -12,7 +12,7 @@
 })(this, 'GamePromise', ['./libs/promise/Promise','./CommandPromise'], function (Promise, CommandPromise) {
 
 	// GamePromise constructor
-	function GamePromise(app, name) {
+	function GamePromise(app, name, ws, room) {
 		//  Getting view
 		var view=document.getElementById(name);
 		Promise.call(this,function(success,error,progress) {
@@ -44,12 +44,12 @@
 						return new GamePromise(app,data.params.view);
 					})
 				);
-			pool.then(function() {
-				if(end)
-					main();
-				else
-					success();
-			});
+				pool.then(function() {
+					if(end)
+						main();
+					else
+						success();
+				});
 			}
 			main();
 			var dispose=function() {

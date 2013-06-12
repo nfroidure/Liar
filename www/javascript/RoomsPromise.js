@@ -10,10 +10,9 @@
 		}));
 	}
 })(this,'RoomsPromise',
-	['./libs/promise/Promise','./libs/promise/XHRPromise','./libs/promise/WebSocketPromise',
-		'./CommandPromise','./ProfilePromise','./GamePromise','./ViewPromise','./FutureViewPromise',
-		'./RoomPromise'],
-	function (Promise, XHRPromise, WebSocketPromise, CommandPromise, ProfilePromise, GameProfile,
+	['./libs/promise/Promise','./libs/promise/XHRPromise', './CommandPromise',
+		'./ProfilePromise','./ViewPromise','./FutureViewPromise', './RoomPromise'],
+	function (Promise, XHRPromise, CommandPromise, ProfilePromise,
 		ViewPromise, FutureViewPromise, RoomPromise) {
 
 	// RoomsPomise constructor
@@ -23,9 +22,10 @@
 		Promise.call(this,function(success,error,progress) {
 			function show() {
 				// Hidding other views
-				Array.prototype.forEach.call(document.querySelectorAll('.view.selected'), function(element) {
-					element.classList.remove('selected');
-				});
+				Array.prototype.forEach.call(document.querySelectorAll('.view.selected'),
+					function(element) {
+						element.classList.remove('selected');
+					});
 				// Showing current view
 				view.classList.add('selected');
 			}
@@ -42,6 +42,8 @@
 						var tr = trTpl.cloneNode(true);
 						tr.firstChild.firstChild.setAttribute('href',
 							trTpl.firstChild.firstChild.getAttribute('href')+room.id);
+						if(room.state)
+							tr.firstChild.firstChild.setAttribute('disabled','disabled');
 						tr.firstChild.firstChild.firstChild.textContent=room.name;
 						tr.childNodes[1].firstChild.textContent=room.players+'/6';
 						tr.childNodes[2].firstChild.textContent=room.mode;
@@ -65,7 +67,7 @@
 					show();
 					return Promise.any(
 					// Handling channel join
-					new CommandPromise(app.cmdMgr,'join',name).then(function(data) { console.log(data)
+					new CommandPromise(app.cmdMgr,'join',name).then(function(data) {
 						return new RoomPromise(app,'Room',data.params.room);
 					}),
 					// Handling channel list refresh

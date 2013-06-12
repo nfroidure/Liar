@@ -12,7 +12,7 @@
 })(this,'RoomPromise',
 	['./libs/promise/Promise','./libs/promise/XHRPromise','./libs/promise/WebSocketPromise',
 		'./CommandPromise','./ProfilePromise','./GamePromise','./ViewPromise','./FutureViewPromise'],
-	function (Promise, XHRPromise, WebSocketPromise, CommandPromise, ProfilePromise, GameProfile,
+	function (Promise, XHRPromise, WebSocketPromise, CommandPromise, ProfilePromise, GamePromise,
 		ViewPromise, FutureViewPromise) {
 
 	// RoomPomise constructor
@@ -29,12 +29,19 @@
 				// Showing current view
 				if(!view.classList.contains('selected'))
 					view.classList.add('selected');
+				// hidding the button
+				if('webkitNotifications' in window
+					&&window.webkitNotifications.checkPermission()===0) {
+					notifButton.style.display='none';
+				} else {
+					notifButton.style.display='inline';
+				}
 			}
 			function updatePlayers() {
 						var h1=view.querySelector('h1');
 						h1.firstChild.textContent=room.name+' ';
 						h1.lastChild.firstChild.textContent=room.players.length+'/6';
-						if(room.players.length>3)
+						if(room.players.length>2)
 								{
 								button.setAttribute('disabled','');
 								// on tente d'afficher une notification
@@ -65,15 +72,14 @@
 						Promise.any(
 							new WebSocketPromise(null,null,8080).then(function(data) {
 								ws=data;
-								var p=WebSocketPromise.getMessagePromise(ws.ws,'connect').then(function(msg){
+								var p=WebSocketPromise.getMessagePromise(ws,'connect').then(function(msg){
 									app.user.sessid=msg.sessid;
 									app.user.id=msg.id;
-									var p=WebSocketPromise.getMessagePromise(ws.ws,'room').then(function(msg){
-									console.log('here');
-										if(msg.room.id!=id) { console.log('test');
+									var p=WebSocketPromise.getMessagePromise(ws,'room').then(function(msg){
+										if(msg.room.id!=id) {
 											end=true;
 										} else {
-											ws.ws.addEventListener('message',function(e) { console.log(e.data)
+											ws.addEventListener('message',function(e) { console.log(e.data)
 												if(!e.data)
 													return;
 												var msgCnt=JSON.parse(e.data);
@@ -106,13 +112,13 @@
 											});
 										}
 									});
-									ws.ws.send(JSON.stringify({
+									ws.send(JSON.stringify({
 										'type':'room',
 										'room':id
 									}));
 									return p;
 								});
-								ws.ws.send(JSON.stringify({
+								ws.send(JSON.stringify({
 									'type':'connect',
 									'name':app.user.name,
 									'gender':app.user.gender
@@ -130,8 +136,8 @@
 						updatePlayers();
 					}))
 				).then(function() {
-					if(!ws) {
-						return new ViewPromise(app,'Network',5000).then(function() {
+					if(!(ws&&room)) {
+						return new ViewPromise(app,'Network',3000).then(function() {
 							end=true;
 						});
 					}
@@ -139,19 +145,26 @@
 					show();
 					return Promise.any(
 						// Handling channel join
-						new CommandPromise(app.cmdMgr,'notify',name).then(function(data) {
-						// asking notification perm
-						window.webkitNotifications.requestPermission();
-						// suppression du bouton
-						notifButton.style.display='none';
+						new CommandPromise(app.cmdMgr,'notify',name).then(function() {
+							// asking notification perm
+							window.webkitNotifications.requestPermission();
+							// hidding the button
+							notifButton.style.display='none';
 						}),
-						// Handling notifications
-						new CommandPromise(app.cmdMgr,'play',name).then(function(data) {
-							return Promise.sure();
+						// Handling start button
+						new CommandPromise(app.cmdMgr,'play',name).then(function() {
+							ws.send(JSON.stringify({
+								'type':'start',
+								'sessid':app.user.sessid
+							}));
+						}),
+						// Handling game start message
+						WebSocketPromise.getMessagePromise(ws,'start').then(function() {
+							new GamePromise(app,'Game',ws,room);
 						}),
 						// Handling message send
-						new CommandPromise(app.cmdMgr,'send',name).then(function(data) {
-							ws.ws.send(JSON.stringify({
+						new CommandPromise(app.cmdMgr,'send',name).then(function() {
+							ws.send(JSON.stringify({
 								'type':'chat',
 								'sessid':app.user.sessid,
 								'message':field.value
@@ -160,11 +173,11 @@
 						}),
 						// Handling the back button
 						new CommandPromise(app.cmdMgr,'back',name).then(function() {
-							ws&&ws.ws.close();
+							ws&&ws.close();
 							end=true;
 						}),
 						// Handling connection lost
-						(ws?ws.closePromise.then(function() {
+						(ws?WebSocketPromise.getClosePromise(ws).then(function() {
 							ws=null;
 							success();
 						}):Promise.sure())
@@ -173,12 +186,14 @@
 				pool.then(function() {
 					if(end) {
 						if(ws) {
-							ws.ws.send(JSON.stringify({
+							ws.send(JSON.stringify({
 								'type':'room',
 								'sessid':app.user.sessid,
 								'room':null
 							}));
 						}
+					while(chat.firstChild)
+						chat.removeChild(chat.firstChild);
 						success();
 					} else {
 						main();
@@ -187,7 +202,7 @@
 			}
 			main();
 			var dispose=function() {
-				ws&&ws.ws.close();
+				ws&&ws.close();
 				pool.dispose();
 				while(chat.firstChild)
 					chat.removeChild(chat.firstChild);
