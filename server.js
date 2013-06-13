@@ -19,7 +19,13 @@ const MIME_TYPES={
 	'mid': 'audio/x-midi',
 	'json': 'application/json',
 	'webapp':'application/x-web-app-manifest+json'
-	};
+	},
+// Room statuses
+	WAIT_ANSWER=1,
+	CLOSING_ANSWERS=2,
+	WAIT_BET=4,
+	CLOSING_BETS=8
+;
 
 // Global vars
 var rootDirectory=__dirname+'/www', // on ajoute la rootDirectory par défaut
@@ -304,9 +310,10 @@ wsServer.on('request', function(request) {
 						hash.update(message.utf8Data,'utf8');
 						sessid=hash.digest('hex');
 						connections[sessid]=
-							{'connection':connection,'player':player};
+							{'connection':connection,'player':player,'sessid':sessid};
 						player.id=++playersIds;
 					}
+					connections.sessid=sessid;
 					// stocking player infos
 					player.name=(''+msgContent.name).replace('&','&amp;')
 						.replace('<','&lt').replace('>','&gt')
@@ -356,20 +363,7 @@ wsServer.on('request', function(request) {
 						}))) {
 						connection.sendUTF(JSON.stringify({'type':'room','room':null}));
 						// removing the player
-						if(connections[sessid].room) {
-							var index=connections[sessid].room.players.indexOf(player);
-							if(-1!==index)
-								connections[sessid].room.players.splice(index,1)
-							roomsConnects[connections[sessid].room.id].splice(
-								roomsConnects[connections[sessid].room.id].indexOf(sessid),1);
-							// notifying players
-							roomsConnects[connections[sessid].room.id].forEach(function(destId) {
-								connections[destId].connection.sendUTF(JSON.stringify(
-									{'type':'leave','player':player.id})
-								);
-							});
-							connections[sessid].room=null;
-						}
+						leaveRoom(connections[sessid]);
 					}
 					console.log((new Date()) + ' ['+connection.remoteAddress+'-'
 						+(player?player.name+'('+player.id+')':'')+']: '
@@ -401,11 +395,7 @@ wsServer.on('request', function(request) {
 						||connections[sessid].room.game)
 						return;
 					// setting the game
-					connections[sessid].room.game={
-						'round':1,
-						'state':0,
-						'time':Date.now()
-					};
+					connections[sessid].room.game={'round':0};
 					// giving points to players
 					connections[sessid].room.players.forEach(function(player) {
 						player.points=10;
@@ -417,10 +407,145 @@ wsServer.on('request', function(request) {
 							JSON.stringify({'type':'start'})
 						);
 					});
+					// new round
+					newRound(connections[sessid].room);
 					console.log((new Date()) + ' ['+connection.remoteAddress+'-'
 						+(player?player.name+'('+player.id+')':'')+']: '
 						+'Start ('+connections[sessid].room.name+').');
-					
+					break;
+				// catch answers
+				case 'answer':
+					if(!(connections[sessid]&&connections[sessid].room))
+						return;
+					var room = connections[sessid].room;
+					if(!(room.game&&room.game.state&(WAIT_ANSWER|CLOSING_ANSWERS)))
+						return;
+					// saving user answer
+					room.game.answers.push({'value':msgContent.answer.replace('&','&amp;')
+							.replace('<','&lt').replace('>','&gt').replace('"','&quot;'),
+						'player':player.id,'points':0});
+					// if enought answers, start the timeout
+					if(room.game.answers.length>2&&!(room.game.state&CLOSING_ANSWERS)) {
+						room.game.state=CLOSING_ANSWERS;
+						// sending the answer countdown
+						roomsConnects[connections[sessid].room.id].forEach(function(destId) {
+							connections[destId].connection.sendUTF(
+								JSON.stringify({'type':'answer','timeLeft':10})
+							);
+						});
+						// setting the timeout
+						setTimeout(function() {
+							// ordering the answers
+							var answers=[], answer, answerIds=0;
+							while(room.answers.length) {
+								answer=room.answers.splice(Math.floor(room.answers.length*Math.random()),1)[0];
+								answer.id=++answerIds;
+								answers.push(answer);
+							}
+							room.answers=answers;
+							// sending answers to players
+							roomsConnects[connections[sessid].room.id].forEach(function(destId) {
+								connections[destId].connection.sendUTF(
+									JSON.stringify({'type':'answers',
+										'answers':room.answers.map(function(answer){
+										return {'id':answer.id,'answer':answer.value};
+										})})
+								);
+							});
+						room.game.state=WAIT_BET;
+						room.game.bets=0;
+						},11000) // 1 sec latency (10+1)
+					}
+					console.log((new Date()) + ' ['+connection.remoteAddress+'-'
+						+(player?player.name+'('+player.id+')':'')+']: '
+						+'Answer ('+msgContent.answer+').');
+					break;
+				case 'bet':
+					if(!(connections[sessid]&&connections[sessid].room))
+						return;
+					var room = connections[sessid].room;
+					if(!(room.game&&room.game.state&(WAIT_BET|CLOSING_BETS)))
+						return;
+					if(player.bet)
+						return;
+					// checking bet validity
+					var bet=parseInt(msgContent.bet,10);
+					if(bet<=player.points)
+						player.points-=bet;
+					else {
+						bet=player.points;
+						player.points=0;
+					}
+					// saving user bet
+					room.game.bets++;
+					player.bet={
+						'answer':parseInt(msgContent.answer,10),
+						'bet':bet,
+						'player':player.id
+					};
+					// if enought bets, start the timeout
+					if(room.game.bets>2&&!(room.game.state&CLOSING_BETS)) {
+						room.game.state=CLOSING_BETS;
+						// sending the bet countdown
+						roomsConnects[connections[sessid].room.id].forEach(function(destId) {
+							connections[destId].connection.sendUTF(
+								JSON.stringify({'type':'bet','timeLeft':3})
+							);
+						});
+						// setting the timeout
+						setTimeout(function(){
+							var scores=[];
+							// computing scores
+							connections[sessid].room.players.forEach(function(player) {
+								for(var i=room.game.answers.length-1; i>=0; i--){
+									if(room.game.answers[i].id===player.bet.answer) {
+										// the player chosen the right answer
+										// he win its bet points
+										room.game.answers[i].points+=player.bet.bet;
+										if(room.game.answers[i].player===0)
+											player.score+=player.bet.bet;
+										// the player loose its bet giving points to the liar
+										else
+											room.players.some(function(liar){
+												if(liar.id==room.game.answers[i].player) {
+													liar.score+=player.bet.bet;
+													return true;
+												}
+											});
+									break;
+									}
+								}
+								player.bet=null;
+							});
+							// sending scores to players
+							roomsConnects[connections[sessid].room.id].forEach(function(destId) {
+								connections[destId].connection.sendUTF(
+									JSON.stringify({'type':'scores','answers':room.answers})
+								);
+							});
+							// next rounf
+							if(room.game.round<5) {
+								newRound(room);
+							// ending the game
+							} else {
+								setTimeout(function() {
+									// sending scores to players
+									roomsConnects[connections[sessid].room.id].forEach(function(destId) {
+										connections[destId].connection.sendUTF(
+											JSON.stringify({'type':'end','scores':room.players.map(function(player){
+												return {'player':player.id,'score':player.score};
+											})})
+										);
+									});
+									room.game=null;
+								},5000);
+							}
+						},4000) // 1 sec latency (3+1)
+					}
+					console.log((new Date()) + ' ['+connection.remoteAddress+'-'
+						+(player?player.name+'('+player.id+')':'')+']: '
+						+'Answer ('+msgContent.answer+').');
+					break;
 				default:
 					console.log((new Date()) + ' ['+connection.remoteAddress+'-'
 						+(player?player.name+'('+player.id+')':'')+']: '
@@ -438,27 +563,79 @@ wsServer.on('request', function(request) {
 				console.log((new Date()) + ' ['+connection.remoteAddress+'-'
 					+(player?player.name+'('+player.id+')':'')+']: '
 					+'Cleanup ('+sessid+').');
-				// removing the player from his room
-				if(connections[sessid].room) {
-					connections[sessid].room.players.splice(
-						connections[sessid].room.players.indexOf(player),1);
-					roomsConnects[connections[sessid].room.id].splice(
-						roomsConnects[connections[sessid].room.id].indexOf(sessid),1);
-					// notifying players
-					roomsConnects[connections[sessid].room.id].forEach(function(destId) {
-						connections[destId].connection.sendUTF(JSON.stringify(
-							{'type':'leave','player':player.id})
-						);
-					});
-				}
 				// on supprime la connection
 				delete connections[sessid];
 			},1000);
+			if(connections[sessid].room) {
+				leaveRoom(connections[sessid]);
+			}
 		}
-	        console.log((new Date()) + ' ['+connection.remoteAddress+'-'
+	  console.log((new Date()) + ' ['+connection.remoteAddress+'-'
 			+(player?player.name+'('+player.id+')':'')+']: '
 			+'Disconnected ('+reasonCode+':'+description+' - '+sessid+').');
 	});
 });
+
+// Utility functions
+// removing the player from his room
+function leaveRoom(connection) {
+	if(connection&&connection.room) {
+		var index=connection.room.players.indexOf(connection.player);
+		if(-1!==index) {
+			connection.room.players.splice(index,1);
+			roomsConnects[connection.room.id].splice(
+				roomsConnects[connection.room.id].indexOf(connection.sessid),1);
+			// notifying players
+			roomsConnects[connection.room.id].forEach(function(destId) {
+				connections[destId].connection.sendUTF(JSON.stringify(
+					{'type':'leave','player':connection.player.id})
+				);
+			});
+			connection.room=null;
+		}
+	}
+}
+// new round
+function newRound(room) {
+	// reset game object
+	room.game.state=WAIT_ANSWER;
+	room.game.round++;
+	room.game.bets=[];
+	room.game.answers=[];
+	// asking a new question
+	var req = http.request({
+		host: 'numbersapi.com',
+		port: 80,
+		path: '/random',
+		method: 'GET'
+	}, function(res) {
+		var body='';
+		res.setEncoding('utf8');
+		res.on('data', function (chunk) {
+			body+=chunk;
+		});
+		res.on('end', function (chunk) {
+			var result=/^([0-9]+) (.*)$/.exec(body);
+			// store the right answer
+			room.game.answers.push({'value':body.replace('&','&amp;')
+					.replace('<','&lt').replace('>','&gt').replace('"','&quot;'),
+				'player':0});
+			// sending the question to each player in the room
+			roomsConnects[room.id].forEach(function(destId) {
+				connections[destId].connection.sendUTF(
+					JSON.stringify({'type':'round',
+						'question':'Which fact hides behind the number '+result[1]+'?',
+						'round':room.round
+					})
+				);
+			});
+		});
+	});
+	req.on('error', function(e) {
+		console.log('Couldn\'t retrieve the question ! Error: ' + e.message +'.');
+	});
+	req.write('');
+	req.end();
+}
 
 console.log('WebSocket Server started.');
