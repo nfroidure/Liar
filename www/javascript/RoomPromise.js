@@ -11,9 +11,10 @@
 	}
 })(this,'RoomPromise',
 	['./libs/promise/Promise','./libs/promise/XHRPromise','./libs/promise/WebSocketPromise',
-		'./CommandPromise','./ProfilePromise','./GamePromise','./ViewPromise','./FutureViewPromise'],
+		'./CommandPromise','./ProfilePromise','./GamePromise','./ViewPromise','./FutureViewPromise',
+		'./AnswerPromise'],
 	function (Promise, XHRPromise, WebSocketPromise, CommandPromise, ProfilePromise, GamePromise,
-		ViewPromise, FutureViewPromise) {
+		ViewPromise, FutureViewPromise, AnswerPromise) {
 
 	// RoomPomise constructor
 	function RoomPromise(app, name, id) {
@@ -76,7 +77,7 @@
 									app.user.sessid=msg.sessid;
 									app.user.id=msg.id;
 									var p=WebSocketPromise.getMessagePromise(ws,'room').then(function(msg){
-										if(msg.room.id!=id) {
+										if((!msg.room)||msg.room.id!=id) {
 											end=true;
 										} else {
 											ws.addEventListener('message',function(e) { console.log(e.data)
@@ -157,10 +158,12 @@
 								'type':'start',
 								'sessid':app.user.sessid
 							}));
+							// wait for the start message
+							return Promise.dumb();
 						}),
 						// Handling game start message
 						WebSocketPromise.getMessagePromise(ws,'start').then(function() {
-							new GamePromise(app,'Game',ws,room);
+							return new GamePromise(app,'Game',ws,room);
 						}),
 						// Handling message send
 						new CommandPromise(app.cmdMgr,'send',name).then(function() {

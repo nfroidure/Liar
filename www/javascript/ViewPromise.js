@@ -29,7 +29,6 @@
 			// UI interactions
 			var pool, end=false;
 			function main() {
-console.log('View: show '+name,end);
 				show();
 				pool=Promise.any(
 					// Handling the back button
@@ -48,7 +47,6 @@ console.log('View: show '+name,end);
 					}):Promise.dumb())
 				);
 				pool.then(function() {
-console.log('View: then '+name,end);
 					if(end)
 						success();
 					else

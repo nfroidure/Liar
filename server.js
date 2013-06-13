@@ -313,7 +313,7 @@ wsServer.on('request', function(request) {
 							{'connection':connection,'player':player,'sessid':sessid};
 						player.id=++playersIds;
 					}
-					connections.sessid=sessid;
+					connection.sessid=sessid;
 					// stocking player infos
 					player.name=(''+msgContent.name).replace('&','&amp;')
 						.replace('<','&lt').replace('>','&gt')
@@ -421,7 +421,7 @@ wsServer.on('request', function(request) {
 					if(!(room.game&&room.game.state&(WAIT_ANSWER|CLOSING_ANSWERS)))
 						return;
 					// saving user answer
-					room.game.answers.push({'value':msgContent.answer.replace('&','&amp;')
+					room.game.answers.push({'answer':msgContent.answer.replace('&','&amp;')
 							.replace('<','&lt').replace('>','&gt').replace('"','&quot;'),
 						'player':player.id,'points':0});
 					// if enought answers, start the timeout
@@ -437,17 +437,17 @@ wsServer.on('request', function(request) {
 						setTimeout(function() {
 							// ordering the answers
 							var answers=[], answer, answerIds=0;
-							while(room.answers.length) {
-								answer=room.answers.splice(Math.floor(room.answers.length*Math.random()),1)[0];
+							while(room.game.answers.length) {
+								answer=room.game.answers.splice(Math.floor(room.game.answers.length*Math.random()),1)[0];
 								answer.id=++answerIds;
 								answers.push(answer);
 							}
-							room.answers=answers;
+							room.game.answers=answers;
 							// sending answers to players
 							roomsConnects[connections[sessid].room.id].forEach(function(destId) {
 								connections[destId].connection.sendUTF(
 									JSON.stringify({'type':'answers',
-										'answers':room.answers.map(function(answer){
+										'answers':room.game.answers.map(function(answer){
 										return {'id':answer.id,'answer':answer.value};
 										})})
 								);
@@ -496,7 +496,7 @@ wsServer.on('request', function(request) {
 						setTimeout(function(){
 							var scores=[];
 							// computing scores
-							connections[sessid].room.players.forEach(function(player) {
+							room.players.forEach(function(player) {
 								for(var i=room.game.answers.length-1; i>=0; i--){
 									if(room.game.answers[i].id===player.bet.answer) {
 										// the player chosen the right answer
@@ -520,22 +520,25 @@ wsServer.on('request', function(request) {
 							// sending scores to players
 							roomsConnects[connections[sessid].room.id].forEach(function(destId) {
 								connections[destId].connection.sendUTF(
-									JSON.stringify({'type':'scores','answers':room.answers})
+									JSON.stringify({'type':'scores','answers':room.game.answers})
 								);
 							});
-							// next rounf
+console.log(room.game.answers);
+							// next round
 							if(room.game.round<5) {
-								newRound(room);
+								setTimeout(function(){
+									newRound(room);
+								},5000);
 							// ending the game
 							} else {
 								setTimeout(function() {
+									var scores={'type':'end','scores':room.players.map(function(player){
+												return {'player':player.id,'score':player.score};
+											})};
+									console.log(scores);
 									// sending scores to players
 									roomsConnects[connections[sessid].room.id].forEach(function(destId) {
-										connections[destId].connection.sendUTF(
-											JSON.stringify({'type':'end','scores':room.players.map(function(player){
-												return {'player':player.id,'score':player.score};
-											})})
-										);
+										connections[destId].connection.sendUTF(JSON.stringify(scores))
 									});
 									room.game=null;
 								},5000);
@@ -615,17 +618,18 @@ function newRound(room) {
 			body+=chunk;
 		});
 		res.on('end', function (chunk) {
-			var result=/^([0-9]+) (.*)$/.exec(body);
+			console.log(body);
+			var result=/^((?:[0-9]+)(?:\.[0-9]+|)(?:e(?:\+|\-)[0-9]+|)) (.*)$/.exec(body);
 			// store the right answer
 			room.game.answers.push({'value':body.replace('&','&amp;')
 					.replace('<','&lt').replace('>','&gt').replace('"','&quot;'),
-				'player':0});
+				'player':0, 'points':0});
 			// sending the question to each player in the room
 			roomsConnects[room.id].forEach(function(destId) {
 				connections[destId].connection.sendUTF(
 					JSON.stringify({'type':'round',
 						'question':'Which fact hides behind the number '+result[1]+'?',
-						'round':room.round
+						'round':room.game.round
 					})
 				);
 			});

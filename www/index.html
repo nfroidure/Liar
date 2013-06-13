@@ -144,8 +144,32 @@
 			<ul class="infos">
 				<li><strong>Score&nbsp;: <span>0</span></strong></li>
 				<li><strong>Points&nbsp;: <span>10</span></strong></li>
-				<li><strong>Turn&nbsp;: <span>0</span></strong></li>
+				<li><strong>Time left&nbsp;: <span>20</span></strong></li>
 			</ul>
+			<h1>Round 1</h1>
+			<p class="text">Who was the 15st president of the USA ?</p>
+			<p class="text"><span><strong>John Kennedy</strong> - Bet :
+				<a href="app:Game/bet?points=1&amp;answer=" title="Bet 1pt it's true">1pt</a>
+				<a href="app:Game/bet?points=2&amp;answer=" title="Bet 2pt it's true">2pt</a>
+				<a href="app:Game/bet?points=3&amp;answer=" title="Bet 3pt it's true">3pt</a>
+			</span><span><strong>John Kennedy</strong> - Author : <span>Paul (+5pts)</span></span></p>
+		</div>
+		<div class="view" id="Answer">
+			<h1>Enter your lie</h1>
+			<form action="app:Answer/send">
+				<p class="text">Who was the 15st president of the USA ?</p>
+				<p>
+					<label>Answer&nbsp;:<br />
+					<input type="text" name="answer" required="required"
+						placeholder="Try to create a believable answer." />
+					</label><br />
+					<input type="submit" value="Lie" />
+				</p>
+			</form>
+		</div>
+		<div class="view" id="Answered">
+			<h1>Answered</h1>
+			<p class="text">Now waiting for users answers<span></span>.</p>
 		</div>
 	</div><div class="separator"></div></div>
 </body>

@@ -36,22 +36,20 @@
 					new CommandPromise(app.cmdMgr,'send',name).then(function(data) {
 						app.user={'name':data.element['username'].value,'gender':-1};
 						end=true;
-						success();
 					}),
 					// Handling the back button
 					new CommandPromise(app.cmdMgr,'back',name).then(function() {
 						end=true;
-						success();
 					})
 				);
-			pool.then(function() {
-				if(end) {
-					view.querySelector('input[formaction]').removeAttribute('style');
-					success();
-				}
-				else
-					main();
-			});
+				pool.then(function() {
+					if(end) {
+						view.querySelector('input[formaction]').removeAttribute('style');
+						success();
+					}
+					else
+						main();
+				});
 			}
 			main();
 			var dispose=function() {
