@@ -448,7 +448,7 @@ wsServer.on('request', function(request) {
 								connections[destId].connection.sendUTF(
 									JSON.stringify({'type':'answers',
 										'answers':room.game.answers.map(function(answer){
-										return {'id':answer.id,'answer':answer.value};
+										return {'id':answer.id,'answer':answer.answer};
 										})})
 								);
 							});
@@ -489,7 +489,7 @@ wsServer.on('request', function(request) {
 						// sending the bet countdown
 						roomsConnects[connections[sessid].room.id].forEach(function(destId) {
 							connections[destId].connection.sendUTF(
-								JSON.stringify({'type':'bet','timeLeft':3})
+								JSON.stringify({'type':'bet','timeLeft':5})
 							);
 						});
 						// setting the timeout
@@ -528,7 +528,7 @@ console.log(room.game.answers);
 							if(room.game.round<5) {
 								setTimeout(function(){
 									newRound(room);
-								},5000);
+								},7000);
 							// ending the game
 							} else {
 								setTimeout(function() {
@@ -541,7 +541,7 @@ console.log(room.game.answers);
 										connections[destId].connection.sendUTF(JSON.stringify(scores))
 									});
 									room.game=null;
-								},5000);
+								},10000);
 							}
 						},4000) // 1 sec latency (3+1)
 					}
