@@ -307,7 +307,7 @@ wsServer.on('request', function(request) {
 					// creating otherwise
 					else {
 						var hash=crypto.createHash('sha1');
-						hash.update(message.utf8Data,'utf8');
+						hash.update(message.utf8Data+Date.now(),'utf8');
 						sessid=hash.digest('hex');
 						connections[sessid]=
 							{'connection':connection,'player':player,'sessid':sessid};
