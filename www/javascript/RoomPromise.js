@@ -12,9 +12,9 @@
 })(this,'RoomPromise',
 	['./libs/promise/Promise','./libs/promise/XHRPromise','./libs/promise/WebSocketPromise',
 		'./CommandPromise','./ProfilePromise','./GamePromise','./ViewPromise','./FutureViewPromise',
-		'./AnswerPromise'],
+		'./AnswerPromise', './ScorePromise'],
 	function (Promise, XHRPromise, WebSocketPromise, CommandPromise, ProfilePromise, GamePromise,
-		ViewPromise, FutureViewPromise, AnswerPromise) {
+		ViewPromise, FutureViewPromise, AnswerPromise, ScorePromise) {
 
 	// RoomPomise constructor
 	function RoomPromise(app, name, id) {
@@ -71,7 +71,7 @@
 					(ws?
 						new Promise.sure():
 						Promise.any(
-							new WebSocketPromise(null,null,8080).then(function(data) {
+							new WebSocketPromise(null,null,8153).then(function(data) {
 								ws=data;
 								var p=WebSocketPromise.getMessagePromise(ws,'connect').then(function(msg){
 									app.user.sessid=msg.sessid;

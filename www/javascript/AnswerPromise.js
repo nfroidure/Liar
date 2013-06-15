@@ -32,21 +32,22 @@
 			var pool, end=false,
 				button=view.querySelector('input[type="submit"]'),
 				timeLeft=-1, timeout, answers,
-				messagePromise=WebSocketPromise.getMessagePromise(ws,'answers').then(function(msg) {
+				answersPromise=WebSocketPromise.getMessagePromise(ws,'answers').then(function(msg) {
 					answers=msg.answers;
 					end=true;
 				});
 			function main() {
 				show();
-				// Handling the form
 				pool=Promise.any(
+				// Handling the answer
 					new CommandPromise(app.cmdMgr,'send',name).then(function(data) {
 						ws.send(JSON.stringify({
 							'type':'answer',
 							'answer':data.element['answer'].value
 						}));
 					data.element['answer'].value='';
-					return Promise.any(messagePromise,
+					// show a simple view and wait answers
+					return Promise.any(answersPromise,
 						new ViewPromise(app,'Answered'));
 					}),
 					// handle the timeout warn
@@ -57,11 +58,11 @@
 						timeout=setTimeout(function answerTimeout() {
 							if(timeLeft>0)
 								timeLeft--;
-							button.setAttribute('value','Lie ('+msg.timeLeft+')');
+							button.setAttribute('value','Lie ('+timeLeft+')');
 							timeout=setTimeout(arguments.callee,999)
 						},999);
-						// return exit timeout
-						return messagePromise;
+						// wait for answers
+						return answersPromise;
 					}));
 				pool.then(function() {
 					if(end) {

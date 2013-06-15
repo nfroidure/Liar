@@ -10,8 +10,8 @@
 		}));
 	}
 })(this, 'GamePromise', ['./libs/promise/Promise','./CommandPromise', './AnswerPromise',
-		'./libs/promise/WebSocketPromise'],
-	function (Promise, CommandPromise, AnswerPromise, WebSocketPromise) {
+		'./libs/promise/WebSocketPromise','./ScorePromise'],
+	function (Promise, CommandPromise, AnswerPromise, WebSocketPromise, ScorePromise) {
 
 	// GamePromise constructor
 	function GamePromise(app, name, ws, room) {
@@ -19,6 +19,9 @@
 		var view=document.getElementById(name),
 				question=view.querySelectorAll('p.text')[0],
 				display=view.querySelectorAll('p.text')[1],
+				score=view.querySelectorAll('ul.infos span')[0],
+				points=view.querySelectorAll('ul.infos span')[1],
+				clock=view.querySelectorAll('ul.infos span')[2],
 				betTpl=display.firstChild, scoreTpl=display.lastChild;
 		
 		Promise.call(this,function(success,error,progress) {
@@ -36,6 +39,9 @@
 			display.removeChild(scoreTpl);
 			// Load message
 			question.firstChild.textContent='Loading the question...';
+			score.firstChild.textContent=0;
+			points.firstChild.textContent=10;
+			clock.firstChild.textContent='-';
 			function main() {
 				show();
 				pool=Promise.any(
@@ -53,38 +59,74 @@
 							for(var i=answers.length-1; i>=0; i--) {
 								var bet=betTpl.cloneNode(true);
 								bet.firstChild.firstChild.textContent='- '+answers[i].answer;
+								var leftPoints=parseInt(points.firstChild.textContent,10);
 								var betLinks=bet.querySelectorAll('a');
-								betLinks[0].setAttribute('href',betLinks[0].getAttribute('href')+answers[i].id);
-								betLinks[1].setAttribute('href',betLinks[1].getAttribute('href')+answers[i].id);
-								betLinks[2].setAttribute('href',betLinks[2].getAttribute('href')+answers[i].id);
+								if(leftPoints>=1) {
+									betLinks[0].setAttribute('href',betLinks[0].getAttribute('href')+answers[i].id);
+									betLinks[0].removeAttribute('disabled');
+									}
+								else
+									betLinks[0].setAttribute('disabled','disabled');
+								if(leftPoints>=2) {
+									betLinks[1].setAttribute('href',betLinks[1].getAttribute('href')+answers[i].id);
+									betLinks[1].removeAttribute('disabled');
+									}
+								else
+									betLinks[1].setAttribute('disabled','disabled');
+								if(leftPoints>=3) {
+									betLinks[2].setAttribute('href',betLinks[2].getAttribute('href')+answers[i].id);
+									betLinks[2].removeAttribute('disabled');
+									}
+								else
+									betLinks[2].setAttribute('disabled','disabled');
 								display.appendChild(bet);
 								display.appendChild(document.createElement('br'));
 							}
+						clock.firstChild.textContent='-';
 						});
 					}).then(function() {
 						show();
 						// ask a bet and wait for results even if no bet
 						return Promise.any(
-							Promise.all(new CommandPromise(app.cmdMgr,'bet',name).then(function(data) {
-								ws.send(JSON.stringify({
-									'type':'bet',
-									'answer':data.params.answer,
-									'bet':data.params.points
-								}));
-							}), Promise.dumb()),
+							Promise.all(
+								new CommandPromise(app.cmdMgr,'bet',name).then(function(data) {
+									points.firstChild.textContent=parseInt(points.firstChild.textContent,10)-parseInt(data.params.points,10);
+									ws.send(JSON.stringify({
+										'type':'bet',
+										'answer':data.params.answer,
+										'bet':data.params.points
+									}));
+								}),
+								WebSocketPromise.getMessagePromise(ws,'bet').then(function(msg) {
+									timeLeft=msg.timeLeft;
+									// discount seconds
+									clock.firstChild.textContent=msg.timeLeft;
+									timeout=setTimeout(function answerTimeout() {
+										if(timeLeft>0)
+											timeLeft--;
+										clock.firstChild.textContent=timeLeft;
+										timeout=setTimeout(arguments.callee,999)
+									},999);
+								}),
+								Promise.dumb()),
 							WebSocketPromise.getMessagePromise(ws,'scores').then(function(msg) {
+								var scoreTd;
 								while(display.firstChild)
 									display.removeChild(display.firstChild);
 								for(var i=msg.answers.length-1; i>=0; i--) {
-									var score=scoreTpl.cloneNode(true);
-									score.firstChild.firstChild.textContent=msg.answers[i].answer;
-									app.room.players.some(function(player){
+									if(!room.players.some(function(player){
 										if(player.id==msg.answers[i].player) {
-											score.lastChild.firstChild.textContent=player.name+' (+'+msg.answers[i].points+'pts)';
+											scoreTd=scoreTpl.cloneNode(true);
+											scoreTd.firstChild.firstChild.textContent=msg.answers[i].answer;
+											scoreTd.lastChild.firstChild.textContent=player.name+' lie ('+msg.answers[i].points+'pts)';
 											return true;
 										}
-									});
-									display.appendChild(score);
+									})) {
+										scoreTd=scoreTpl.cloneNode(true);
+										scoreTd.firstChild.firstChild.textContent=msg.answers[i].answer;
+										scoreTd.lastChild.firstChild.textContent=' It\'s true ('+msg.answers[i].points+'pts)';
+									}
+									display.appendChild(scoreTd);
 									display.appendChild(document.createElement('br'));
 								}
 							})
@@ -93,7 +135,17 @@
 					// Handling the end
 					WebSocketPromise.getMessagePromise(ws,'end').then(function(msg){
 						// show score view with timeout then end
-						end=true;
+						return new ScorePromise(app,'Score',10000, msg.scores.map(function(score){
+							room.players.some(function(player){
+								if(player.id==score.player) {
+									score.player=player.name;
+									return true;
+								}
+							});
+							return score;
+						})).then(function(){
+							end=true;
+						});
 					})
 				);
 				pool.then(function() {

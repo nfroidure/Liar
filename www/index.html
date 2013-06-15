@@ -62,6 +62,17 @@
 			</ul>
 			<p class="menu"><a href="app:About/back" title="Back to home">Back</a></p>
 		</div>
+		<div class="view" id="About">
+			<h1>More games</h1>
+			<p class="text">
+				Here are a few game by the same author. Give a try !
+			</p>
+			<ul class="text">
+				<li><a href="http://www.sumure.com" title="Play Sumuraÿ">Sumuraÿ</a>: An addictive game where you must find sums.</li>
+				<li><a href="http://breakit.elitwork.com" title="Play BreakIt">BreakIt</a>: A simple breakout-like game.</li>
+			</p>
+			<p class="menu"><a href="app:About/back" title="Back to home">Back</a></p>
+		</div>
 		<div class="view" id="Profile">
 			<h1>Profil</h1>
 			<form action="app:Profile/send" data-change="app:Profile/change">
@@ -144,7 +155,7 @@
 			<ul class="infos">
 				<li><strong>Score&nbsp;: <span>0</span></strong></li>
 				<li><strong>Points&nbsp;: <span>10</span></strong></li>
-				<li><strong>Time left&nbsp;: <span>20</span></strong></li>
+				<li><strong>Time left&nbsp;: <span>-</span></strong></li>
 			</ul>
 			<h1>Round 1</h1>
 			<p class="text">Who was the 15st president of the USA ?</p>
@@ -152,7 +163,7 @@
 				<a href="app:Game/bet?points=1&amp;answer=" title="Bet 1pt it's true">1pt</a>
 				<a href="app:Game/bet?points=2&amp;answer=" title="Bet 2pt it's true">2pt</a>
 				<a href="app:Game/bet?points=3&amp;answer=" title="Bet 3pt it's true">3pt</a>
-			</span><span><strong>John Kennedy</strong> - Author : <span>Paul (+5pts)</span></span></p>
+			</span><span><strong>John Kennedy</strong> - <span>Paul lie (+5pts)</span></span></p>
 		</div>
 		<div class="view" id="Answer">
 			<h1>Enter your lie</h1>
@@ -169,7 +180,17 @@
 		</div>
 		<div class="view" id="Answered">
 			<h1>Answered</h1>
-			<p class="text">Now waiting for users answers<span></span>.</p>
+			<p class="text">Now waiting for other answers<span></span>.</p>
+		</div>
+		<div class="view" id="Score">
+			<h1>Scores</h1>
+			<p class="text"><span>
+				And, the winner is <strong>Pierre</strong>!<br /></span><span>
+				2th is <strong>Paul</strong>!<br /></span><span>
+				3rd <strong>Jack</strong>!<br /></span><span>
+				Then <strong>John</strong>!<br /></span><span>
+				Then <strong>Henri</strong>!
+			</span></p>
 		</div>
 	</div><div class="separator"></div></div>
 </body>
