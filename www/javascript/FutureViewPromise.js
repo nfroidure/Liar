@@ -9,19 +9,18 @@
 			return root[dep];
 		}));
 	}
-})(this,'FutureViewPromise', ['./libs/promise/Promise'],  function (Promise) {
+})(this,'FutureViewPromise', ['require','./libs/promise/Promise'],  function (require, Promise) {
 
 	// FutureViewPromise constructor
 	function FutureViewPromise(name) {
 		if(!(this instanceof FutureViewPromise))
 			throw Error('Use new to intantiate !');
 		Promise.call(this,function(success) {
-			require([name+'Promise'],function(promise) {
+			require(['./'+name+'Promise'],function(promise) {
 				success(promise);
 			},function(err) {
-				require(['ViewPromise'],function ViewPromise(promise) {
+				require(['./ViewPromise'],function ViewPromise(promise) {
 					success(promise);
-					//console.log(name+' view fallback',err);
 				});
 			});
 			return;
