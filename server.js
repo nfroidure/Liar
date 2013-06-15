@@ -24,13 +24,12 @@ const MIME_TYPES={
 	WAIT_ANSWER=1,
 	CLOSING_ANSWERS=2,
 	WAIT_BET=4,
-	CLOSING_BETS=8
-;
+	CLOSING_BETS=8;
 
 // Global vars
-var rootDirectory=__dirname+'/www', // on ajoute la rootDirectory par défaut
+var rootDirectory=__dirname+'/www', // default directory
 	domain='127.0.0.1',
-	port=8080;
+	port=80;
 
 // Real-time game vars
 // player objects
@@ -483,13 +482,13 @@ wsServer.on('request', function(request) {
 						'bet':bet,
 						'player':player.id
 					};
-					// if enought bets, start the timeout
-					if(room.game.bets>2&&!(room.game.state&CLOSING_BETS)) {
+					// on the first bet, start the timeout
+					if(!(room.game.state&CLOSING_BETS)) {
 						room.game.state=CLOSING_BETS;
 						// sending the bet countdown
 						roomsConnects[connections[sessid].room.id].forEach(function(destId) {
 							connections[destId].connection.sendUTF(
-								JSON.stringify({'type':'bet','timeLeft':5})
+								JSON.stringify({'type':'bet','timeLeft':10})
 							);
 						});
 						// setting the timeout
@@ -497,6 +496,10 @@ wsServer.on('request', function(request) {
 							var scores=[];
 							// computing scores
 							room.players.forEach(function(player) {
+								// the player hasn't bet
+								if(!player.bet)
+									return;
+								// the player has bet
 								for(var i=room.game.answers.length-1; i>=0; i--){
 									if(room.game.answers[i].id===player.bet.answer) {
 										// the player chosen the right answer
@@ -505,7 +508,8 @@ wsServer.on('request', function(request) {
 										if(room.game.answers[i].player===0)
 											player.score+=player.bet.bet;
 										// the player loose its bet giving points to the liar
-										else
+										// except if he chosen its own lie
+										else if(room.game.answers[i].player!==player.id)
 											room.players.some(function(liar){
 												if(liar.id==room.game.answers[i].player) {
 													liar.score+=player.bet.bet;
@@ -523,9 +527,10 @@ wsServer.on('request', function(request) {
 									JSON.stringify({'type':'scores','answers':room.game.answers})
 								);
 							});
-console.log(room.game.answers);
-							// next round
-							if(room.game.round<5) {
+							// next round if some points still left
+							if(room.game.round<5&&room.players.some(function(player){
+								return !!player.points;
+							})) {
 								setTimeout(function(){
 									newRound(room);
 								},7000);
@@ -534,6 +539,8 @@ console.log(room.game.answers);
 								setTimeout(function() {
 									var scores={'type':'end','scores':room.players.map(function(player){
 												return {'player':player.id,'score':player.score};
+											}).sort(function(sA, sB) {
+												return (sA.score<sB.score?1:0)||(sA.score>sB.score?-1:0);
 											})};
 									console.log(scores);
 									// sending scores to players
@@ -541,9 +548,9 @@ console.log(room.game.answers);
 										connections[destId].connection.sendUTF(JSON.stringify(scores))
 									});
 									room.game=null;
-								},10000);
+								},7000);
 							}
-						},4000) // 1 sec latency (3+1)
+						},11000) // 1 sec latency (10+1)
 					}
 					console.log((new Date()) + ' ['+connection.remoteAddress+'-'
 						+(player?player.name+'('+player.id+')':'')+']: '
@@ -605,6 +612,9 @@ function newRound(room) {
 	room.game.round++;
 	room.game.bets=[];
 	room.game.answers=[];
+	room.players.forEach(function(player) {
+		player.bet=null;
+	});
 	// asking a new question
 	var req = http.request({
 		host: 'numbersapi.com',
@@ -621,7 +631,7 @@ function newRound(room) {
 			console.log(body);
 			var result=/^((?:[0-9]+)(?:\.[0-9]+|)(?:e(?:\+|\-)[0-9]+|)) (.*)$/.exec(body);
 			// store the right answer
-			room.game.answers.push({'value':body.replace('&','&amp;')
+			room.game.answers.push({'answer':body.replace('&','&amp;')
 					.replace('<','&lt').replace('>','&gt').replace('"','&quot;'),
 				'player':0, 'points':0});
 			// sending the question to each player in the room
