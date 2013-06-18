@@ -10,7 +10,7 @@
 		}));
 	}
 })(this, 'GamePromise', ['./libs/promise/Promise','./CommandPromise', './AnswerPromise',
-		'./libs/promise/WebSocketPromise','./ScorePromise'],
+		'./libs/promise/dom/WebSocketPromise','./ScorePromise'],
 	function (Promise, CommandPromise, AnswerPromise, WebSocketPromise, ScorePromise) {
 
 	// GamePromise constructor

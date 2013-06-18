@@ -10,7 +10,7 @@
 		}));
 	}
 })(this,'AnswerPromise', ['./libs/promise/Promise','./CommandPromise',
-		'./libs/promise/WebSocketPromise','./ViewPromise'],
+		'./libs/promise/dom/WebSocketPromise','./ViewPromise'],
 	function (Promise, CommandPromise, WebSocketPromise, ViewPromise) {
 
 	// ProfilePromise constructor

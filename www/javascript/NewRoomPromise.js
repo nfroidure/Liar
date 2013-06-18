@@ -9,7 +9,7 @@
 			return root[dep];
 		}));
 	}
-})(this,'NewRoomPromise', ['./libs/promise/Promise','./libs/promise/XHRPromise','./CommandPromise'],
+})(this,'NewRoomPromise', ['./libs/promise/Promise','./libs/promise/dom/XHRPromise','./CommandPromise'],
 	function (Promise, XHRPromise, CommandPromise) {
 
 	// NewRoomPromise constructor

@@ -10,7 +10,7 @@
 		}));
 	}
 })(this,'RoomsPromise',
-	['./libs/promise/Promise','./libs/promise/XHRPromise', './CommandPromise',
+	['./libs/promise/Promise','./libs/promise/dom/XHRPromise', './CommandPromise',
 		'./ProfilePromise','./ViewPromise','./FutureViewPromise', './RoomPromise'],
 	function (Promise, XHRPromise, CommandPromise, ProfilePromise,
 		ViewPromise, FutureViewPromise, RoomPromise) {
@@ -66,27 +66,28 @@
 				).then(function() {
 					show();
 					return Promise.any(
-					// Handling channel join
-					new CommandPromise(app.cmdMgr,'join',name).then(function(data) {
-						return new RoomPromise(app,'Room',data.params.room);
-					}),
-					// Handling channel list refresh
-					new CommandPromise(app.cmdMgr,'refresh',name).then(function() {
-						return getRoomsUpdatePromise();
-					}),
-					// Handling the back button
-					new CommandPromise(app.cmdMgr,'back',name).then(function() {
-						end=true;
-					}),
-					// Handling menu
-					new CommandPromise(app.cmdMgr,'menu',name).then(function(data) {
-						// Loading the selected view
-						return new FutureViewPromise(data.params.view)
-							.then(function(ViewPromise){
-								return new ViewPromise(app,data.params.view);
-							});
-					})
-				)});
+						// Handling channel join
+						new CommandPromise(app.cmdMgr,'join',name).then(function(data) {
+							return new RoomPromise(app,'Room',data.params.room);
+						}),
+						// Handling channel list refresh
+						new CommandPromise(app.cmdMgr,'refresh',name).then(function() {
+							return getRoomsUpdatePromise();
+						}),
+						// Handling the back button
+						new CommandPromise(app.cmdMgr,'back',name).then(function() {
+							end=true;
+						}),
+						// Handling menu
+						new CommandPromise(app.cmdMgr,'menu',name).then(function(data) {
+							// Loading the selected view
+							return new FutureViewPromise(data.params.view)
+								.then(function(ViewPromise){
+									return new ViewPromise(app,data.params.view);
+								});
+						})
+					)
+				});
 			pool.then(function() {
 				empty();
 				if(end) {

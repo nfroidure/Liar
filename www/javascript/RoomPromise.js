@@ -10,7 +10,7 @@
 		}));
 	}
 })(this,'RoomPromise',
-	['./libs/promise/Promise','./libs/promise/XHRPromise','./libs/promise/WebSocketPromise',
+	['./libs/promise/Promise','./libs/promise/dom/XHRPromise','./libs/promise/dom/WebSocketPromise',
 		'./CommandPromise','./ProfilePromise','./GamePromise','./ViewPromise','./FutureViewPromise',
 		'./AnswerPromise', './ScorePromise'],
 	function (Promise, XHRPromise, WebSocketPromise, CommandPromise, ProfilePromise, GamePromise,
