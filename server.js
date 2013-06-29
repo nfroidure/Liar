@@ -18,6 +18,7 @@ const MIME_TYPES={
 	'ogg': 'audio/ogg',
 	'mid': 'audio/x-midi',
 	'json': 'application/json',
+	'csv': 'text/csv',
 	'webapp':'application/x-web-app-manifest+json'
 	},
 // Room statuses
@@ -29,7 +30,7 @@ const MIME_TYPES={
 // Global vars
 var rootDirectory=__dirname+'/www', // default directory
 	domain='127.0.0.1',
-	port=80;
+	port=8125;
 
 // Real-time game vars
 // player objects
@@ -47,7 +48,7 @@ var roomsIds=2;
 
 // HTTP Server
 
-// looking for th RootDirectory on CLI args
+// looking for the RootDirectory on CLI args
 if(process.argv[2])
 	rootDirectory=process.argv[2];
 if(!fs.statSync(rootDirectory).isDirectory())
@@ -120,54 +121,40 @@ var httpServer=http.createServer(function (request, response) {
 		}
 	}
 
-	/*/ génération du manifeste
+	// generating the manifest
 	if(parsedUrl.pathname==='/application.manifest'&&
-		(request.method=='HEAD'||request.method=='GET'))
-		{
-		// Parallélisation des listing du msgContent de dossiers
-		var dossiers=['javascript','images','sounds','css'];
+		(request.method=='HEAD'||request.method=='GET')) {
+		// parralelizing folder stat
+		var folders=['javascript','images','sounds','css'];
 		var listings=[];
-		var dossiersRestants=dossiers.length;
-		dossiers.forEach(function(nom)
-			{
-			fs.readdir(rootDirectory+'/'+nom,function(error,fichiers)
-				{
+		var foldersLeft=folders.length;
+		folders.forEach(function(name) {
+			fs.readdir(rootDirectory+'/'+name,function(error,file) {
 				// en cas d'error, on stoppe tout
-				if(error)
-					{
+				if(error) {
 					response.writeHead(500);
 					response.end();
-					throw Error('Impossible de lire le dossier "'+nom+'".');
-					}
-				// on garde une référence sur la liste de fichiers
-				listings[nom]=fichiers;
-				// si tous les dossiers ont été lus
-				if(0==--dossiersRestants)
-					{
-					// sinon, on envoie un code de succès
+					throw Error('Unable to read the folder "'+name+'".');
+				}
+				listings[name]=file;
+				// when all folders are stated
+				if(0==--foldersLeft) {
 					response.writeHead(200,{'Content-Type':MIME_TYPES['manifest']});
-					// puis on génère le manifeste
-					response.write('CACHE MANIFEST\n# v 1.0:'+process.pid+'\n\nCACHE:\n/index.html\n');
-					// on itère sur chaque listing
-					dossiers.forEach(function(nom)
-						{
-						// puis sur chaque fichier du listing
-						for(var i=listings[nom].length-1; i>=0; i--)
-							{
-							// enfin on écrit la ligne du manifeste (sauf pour liste.json)
-							// qui est dans la section fallback
-							if('liste.json'!==listings[nom][i])
-								response.write('/'+nom+'/'+listings[nom][i]+'\n');
+					// generating the manifest
+					response.write('CACHE MANIFEST\n# v 1.1\n\nCACHE:\n/index.html\n');
+					folders.forEach(function(name) {
+						for(var i=listings[name].length-1; i>=0; i--) {
+							if(-1!==listings[name][i].indexOf('.')&&'list.json'!==listings[name][i])
+								response.write('/'+name+'/'+listings[name][i]+'\n');
 							}
 						});
-					// on finalise le manifeste
+					// ending the manifest
 					response.end('\nFALLBACK:\n/univers/liste.json /univers/liste.json\n\nNETWORK:\n*\n');
 					}
 				});
 			});
-		// on schinte le serveur statique
 		return;
-		}*/
+		}
 
 	// Static contents : read-only access
 	if('HEAD'!==request.method&&'GET'!==request.method) {
@@ -244,45 +231,42 @@ console.log('Server started on http://'+domain+':'+port+'/, '
 	+'serving directory :'+rootDirectory);
 
 // WebSocket Server
-
 var wsServer = new ws({
 		httpServer: httpServer,
 		autoAcceptConnections: false
 	});
 
-// On écoute les demandes de connection
+// listening to new connections
 wsServer.on('request', function(request) {
-	// Si l'origine de la connection n'est pas notre site, on la rejette
+	// reject bad origin requests
 	if(-1===request.origin.indexOf('http://127.0.0.1:'+port)
 		&&-1===request.origin.indexOf('http://'+domain+':'+port)) {
 		console.log(new Date()+': Connection origin rejected ('+request.origin+').');
 		request.reject();
 		return;
 	}
-	// on récupère l'objet connection
+	// retrieve connection object
 	var connection = request.accept(null, request.origin),
-	// on crée les variables relatives au player
+	// creating vars related to the player
 		player={}, sessid='';
-	console.log((new Date()) + ': Nouvelle connection acceptée.');
-	// on écoute les messages reçus depuis cette connection
+	console.log((new Date()) + ': New connection.');
+	// Listening to messages
 	connection.on('message', function(message) {
-		console.log(message.utf8Data);
-		// on crée une variable pour contenir le message décodé
 		var msgContent;
-		// on ne traite que les message encodés en utf8
 		if ('utf8' === message.type) {
-			// on parse le JSON reçu
+			// parsing JSON
 			try {
 				msgContent=JSON.parse(message.utf8Data);
 			} catch(e) {
-				// si le le JSON est mal formé on ignore le message
 				console.log(new Date()+': Bad JSON received ' + message.utf8Data);
 				return;
 			}
-			// on vérifie si le JSON a bien un type
-			if(!msgContent.type)
+			// checking for a message type
+			if(!msgContent.type){
+				console.log(new Date()+': Bad type' + message.utf8Data);
 				return;
-			// on choisi l'action à faire selon le type
+			}
+			// action witch
 			switch(msgContent.type) {
 				// connection
 				case 'connect':
