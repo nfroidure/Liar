@@ -71,7 +71,7 @@
 					(ws?
 						new Promise.sure():
 						Promise.any(
-							new WebSocketPromise(null,null,8125).then(function(data) {
+							new WebSocketPromise(null,null,80).then(function(data) {
 								ws=data;
 								var p=WebSocketPromise.getMessagePromise(ws,'connect').then(function(msg){
 									app.user.sessid=msg.sessid;

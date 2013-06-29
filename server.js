@@ -29,7 +29,7 @@ const MIME_TYPES={
 
 // Global vars
 var rootDirectory=__dirname+'/www', // default directory
-	domain='127.0.0.1',
+	domain='liar.insertafter.com',
 	port=8125;
 
 // Real-time game vars
@@ -130,7 +130,6 @@ var httpServer=http.createServer(function (request, response) {
 		var foldersLeft=folders.length;
 		folders.forEach(function(name) {
 			fs.readdir(rootDirectory+'/'+name,function(error,file) {
-				// en cas d'error, on stoppe tout
 				if(error) {
 					response.writeHead(500);
 					response.end();
@@ -149,7 +148,7 @@ var httpServer=http.createServer(function (request, response) {
 							}
 						});
 					// ending the manifest
-					response.end('\nFALLBACK:\n/univers/liste.json /univers/liste.json\n\nNETWORK:\n*\n');
+					response.end('\nFALLBACK:\n\n\nNETWORK:\n*\n');
 					}
 				});
 			});
@@ -240,7 +239,9 @@ var wsServer = new ws({
 wsServer.on('request', function(request) {
 	// reject bad origin requests
 	if(-1===request.origin.indexOf('http://127.0.0.1:'+port)
-		&&-1===request.origin.indexOf('http://'+domain+':'+port)) {
+		&&-1===request.origin.indexOf('http://'+domain+':'+port)
+		&&-1===request.origin.indexOf('http://'+domain+':80')
+		&&-1===request.origin.indexOf('http://'+domain)) {
 		console.log(new Date()+': Connection origin rejected ('+request.origin+').');
 		request.reject();
 		return;
@@ -277,11 +278,11 @@ wsServer.on('request', function(request) {
 					if(msgContent.sessid&&connections[msgContent.sessid]) {
 						sessid=msgContent.sessid;
 						player=connections[sessid].player;
-						// on ferme éventuellement l'ancienne connection
+						// closing old connection if exists
 						if(connections[sessid].connection)
 							connections[sessid].connection.close();
 						connections[sessid].connection=connection;
-						// on arrête le timer
+						// stopping the timer
 						if(connections[sessid].timeout) {
 							clearTimeout(connections[sessid].timeout);
 							connections[sessid].timeout=0;
@@ -297,7 +298,7 @@ wsServer.on('request', function(request) {
 						player.id=++playersIds;
 					}
 					connection.sessid=sessid;
-					// stocking player infos
+					// storing player infos
 					player.name=(''+msgContent.name).replace('&','&amp;')
 						.replace('<','&lt').replace('>','&gt')
 						.replace('"','&quot;').trim();
