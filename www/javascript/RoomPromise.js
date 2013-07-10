@@ -27,7 +27,7 @@
 					&&window.webkitNotifications.checkPermission()===0) {
 					notifButton.style.display='none';
 				} else {
-					notifButton.style.display='inline';
+					notifButton.style.display='inline-block';
 				}
 			}
 			function updatePlayers() {
