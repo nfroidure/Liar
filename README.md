@@ -3,7 +3,7 @@ Liar : A Multiplayer game full of lies :)
 
 Play
 -------------
-http://liar.insertafter.com/index.html
+You can try the game here : http://liar.insertafter.com/index.html
 
 Synopsis
 -------------
@@ -20,7 +20,9 @@ Requirements
 * Modern web browser (Chrome, Firefox ...)
 * NodeJS + npm install websocket
 * Libs : RequireJS, Promis, Commandor, Sounds.
-* Building :
+
+Building
+-------------
 ```bash
 npm install -g requirejs
 cd www
@@ -29,7 +31,9 @@ r.js -o baseUrl=./javascript/ name=Application out=javascript/production.js opti
 # Production
 r.js -o baseUrl=./javascript/ name=Application out=javascript/production.js
 ```
-* Testing :
+
+Testing
+-------------
 ```bash
 npm install -g request mocha; mocha tests/*.mocha.js
 ```

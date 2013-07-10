@@ -1,19 +1,11 @@
-// AMD stuff : Browser + RequireJS
-(function (root, moduleName, deps, factory) {
-	if (typeof define === 'function' && define.amd) {
-		// AMD. Register
-		define(deps, factory);
-	} else {
-		// Browser globals
-		root[moduleName] = factory.apply(root,deps.map(function(dep) {
-			return root[dep];
-		}));
-	}
-})(this,'RoomsPromise',
-	['./libs/promise/Promise','./libs/promise/dom/XHRPromise', './CommandPromise',
+// AMD + Global: r.js compatible
+// Use START + END markers to keep module content only
+(function(root,define){ define(['./libs/promise/Promise',
+		'./libs/promise/dom/XHRPromise', './libs/commandor/CommandPromise',
 		'./ProfilePromise','./ViewPromise','./FutureViewPromise', './RoomPromise'],
 	function (Promise, XHRPromise, CommandPromise, ProfilePromise,
 		ViewPromise, FutureViewPromise, RoomPromise) {
+// START: Module logic start
 
 	// RoomsPomise constructor
 	function RoomsPromise(app, name) {
@@ -108,6 +100,17 @@
 
 	RoomsPromise.prototype=Object.create(Promise.prototype);
 
+
+// END: Module logic end
+
 	return RoomsPromise;
 
-});
+});})(this,typeof define === 'function' && define.amd ? define : function (name, deps, factory) {
+	var root=this;
+	if(typeof name === 'object') {
+		factory=deps; deps=name; name='RoomsPromise';
+	}
+	this[name.substring(name.lastIndexOf('/')+1)]=factory.apply(this, deps.map(function(dep){
+		return root[dep.substring(dep.lastIndexOf('/')+1)];
+	}));
+}.bind(this));

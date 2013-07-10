@@ -1,17 +1,9 @@
-// AMD stuff : Browser + RequireJS
-(function (root, moduleName, deps, factory) {
-	if (typeof define === 'function' && define.amd) {
-		// AMD. Register
-		define(deps, factory);
-	} else {
-		// Browser globals
-		root[moduleName] = factory.apply(root,deps.map(function(dep) {
-			return root[dep];
-		}));
-	}
-})(this,'ViewPromise',
-	['./libs/promise/Promise','./FutureViewPromise','./CommandPromise'],
+// AMD + Global: r.js compatible
+// Use START + END markers to keep module content only
+(function(root,define){ define(['./libs/promise/Promise','./FutureViewPromise',
+		'./libs/commandor/CommandPromise'],
 	function (Promise, FutureViewPromise, CommandPromise) {
+// START: Module logic start
 
 	// ViewPromise constructor
 	function ViewPromise(app, name, timeout) {
@@ -63,6 +55,16 @@
 
 	ViewPromise.prototype=Object.create(Promise.prototype);
 
+// END: Module logic end
+
 	return ViewPromise;
 
-});
+});})(this,typeof define === 'function' && define.amd ? define : function (name, deps, factory) {
+	var root=this;
+	if(typeof name === 'object') {
+		factory=deps; deps=name; name='ViewPromise';
+	}
+	this[name.substring(name.lastIndexOf('/')+1)]=factory.apply(this, deps.map(function(dep){
+		return root[dep.substring(dep.lastIndexOf('/')+1)];
+	}));
+}.bind(this));

@@ -1,17 +1,9 @@
-// AMD stuff : Browser + RequireJS
-(function (root, moduleName, deps, factory) {
-	if (typeof define === 'function' && define.amd) {
-		// AMD. Register
-		define(deps, factory);
-	} else {
-		// Browser globals
-		root[moduleName] = factory.apply(root,deps.map(function(dep) {
-			return root[dep];
-		}));
-	}
-})(this, 'GamePromise', ['./libs/promise/Promise','./CommandPromise', './AnswerPromise',
+// AMD + Global: r.js compatible
+// Use START + END markers to keep module content only
+(function(root,define){ define(['./libs/promise/Promise','./libs/commandor/CommandPromise', './AnswerPromise',
 		'./libs/promise/dom/WebSocketPromise','./ScorePromise'],
 	function (Promise, CommandPromise, AnswerPromise, WebSocketPromise, ScorePromise) {
+// START: Module logic start
 
 	// GamePromise constructor
 	function GamePromise(app, name, ws, room) {
@@ -174,6 +166,16 @@
 
 	GamePromise.prototype=Object.create(Promise.prototype);
 
+// END: Module logic end
+
 	return GamePromise;
 
-});
+});})(this,typeof define === 'function' && define.amd ? define : function (name, deps, factory) {
+	var root=this;
+	if(typeof name === 'object') {
+		factory=deps; deps=name; name='GamePromise';
+	}
+	this[name.substring(name.lastIndexOf('/')+1)]=factory.apply(this, deps.map(function(dep){
+		return root[dep.substring(dep.lastIndexOf('/')+1)];
+	}));
+}.bind(this));
