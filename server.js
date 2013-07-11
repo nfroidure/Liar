@@ -125,7 +125,7 @@ var httpServer=http.createServer(function (request, response) {
 	if(parsedUrl.pathname==='/application.manifest'&&
 		(request.method=='HEAD'||request.method=='GET')) {
 		// parralelizing folder stat
-		var folders=['javascript','images','sounds','css'];
+		var folders=['images','sounds','css'];
 		var listings=[];
 		var foldersLeft=folders.length;
 		folders.forEach(function(name) {
@@ -148,7 +148,7 @@ var httpServer=http.createServer(function (request, response) {
 							}
 						});
 					// ending the manifest
-					response.end('\nFALLBACK:\n\n\nNETWORK:\n*\n');
+					response.end('javascript/production.js\n\nFALLBACK:\n\n\nNETWORK:\n*\n');
 					}
 				});
 			});
@@ -208,18 +208,31 @@ var httpServer=http.createServer(function (request, response) {
 			} else {
 				code=200;
 			}
-			// on envoi le code et les entêtes
-			response.writeHead(code, headers);
-			// si la méthode est GET alors on envoi
-			// aussi le msgContent du fichier
-			if('GET'===request.method) {
-				// on transvase le flux de lecture
-				// en prenant soin d'indiquer la
-				// plage d'octets concernés 
-				fs.createReadStream(rootDirectory
-				+parsedUrl.pathname,{start: start, end: end})
-				.pipe(response);
+			if('GET'===request.method&&0===MIME_TYPES[ext].indexOf('text/')) {
+				// setting content encoding
+				if(request.headers['accept-encoding'].match(/\bdeflate\b/)) {
+					headers['Content-Encoding'] = 'deflate';
+					delete headers['Content-Length'];
+				} else if (request.headers['accept-encoding'].match(/\bgzip\b/)) {
+					headers['Content-Encoding'] = 'gzip';
+					delete headers['Content-Length'];
+				}
+				// sending code and headers
+				response.writeHead(code, headers);
+				// getting ofstream
+				var ofstream=fs.createReadStream(rootDirectory
+					+parsedUrl.pathname,{start: start, end: end});
+				if(headers['Content-Encoding']) {
+					ofstream.pipe('gzip'===headers['Content-Encoding']?
+							zlib.createGzip():zlib.createDeflate())
+						.pipe(response);
+				}
+				else {
+					ofstream.pipe(response);
+				}
 			} else {
+				// sending code and headers
+				response.writeHead(code, headers);
 				response.end();
 			}
 		}
