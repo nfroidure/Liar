@@ -1,3 +1,9 @@
+// for static analysis with r.js
+function staticAnalysis() {
+	require(['AnswerPromise','GamePromise','RoomsPromise','ProfilePromise'
+		,'ScorePromise','FutureViewPromise','NewRoomPromise','RoomPromise']);
+}
+
 // AMD stuff
 (function (root, factory) {
 	if (typeof define === 'function' && define.amd) {

@@ -8,13 +8,22 @@
 		if(!(this instanceof FutureViewPromise))
 			throw Error('Use new to intantiate !');
 		Promise.call(this,function(success) {
-			require(['./'+name+'Promise'],function(promise) {
-				success(promise);
-			},function(err) {
-				require(['./ViewPromise'],function ViewPromise(promise) {
+			// Testing global context for constructors
+			if(root.ViewPromise) {
+				if(root[name+'Promise'])
+					success(root[name+'Promise']);
+				else
+					success(root.ViewPromise);
+			// Fallback to requireJS
+			} else {
+				require(['./'+name+'Promise'],function(promise) {
 					success(promise);
+				},function(err) {
+					require(['./ViewPromise'],function ViewPromise(promise) {
+						success(promise);
+					});
 				});
-			});
+			}
 			return;
 		});
 	}
