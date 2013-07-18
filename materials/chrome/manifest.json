@@ -1,0 +1,22 @@
+{
+	"name": "Liar",
+	"description": "Play with your friends and try to be the best liar.",
+	"version": "1",
+	"icons": {
+		"16": "icon-16.png",
+		"48": "icon-48.png",
+		"128": "icon-128.png"
+	},
+	"app": {
+		"urls": [
+			"http://liar.insertafter.com/index.html"
+		],
+		"launch": {
+			"web_url": "http://liar.insertafter.com/index.html"
+		}
+	},
+	"permissions": [
+		"unlimitedStorage"
+	],
+	"manifest_version": 2
+}
