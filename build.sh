@@ -5,6 +5,8 @@
 oldPwd=$(pwd)
 # 
 cd "$(dirname $0)/www";
+# Avoid multiple > addition
+sed -i "s/PROD-->/PROD--/g" index.html
 # Comment RequireJS script tag
 sed -i "s/DEV-->/DEV--/g" index.html
 # Uncomment production script tag
@@ -18,12 +20,15 @@ else
 	r.js -o baseUrl=./javascript/ name=Application out=javascript/production.js optimize=none
 fi
 # Adding a simple closure
-prodContent=$(cat javascript/production.js)
-echo "(function() {\n\n$prodContent\n\n}).call({})" > javascript/production.js
+echo "(function() {\n\n" >> /tmp/production.js
+cat javascript/production.js >> /tmp/production.js
+echo "\n\n}).call({})" >> /tmp/production.js
+mv /tmp/production.js javascript/production.js
 # Sending if server given
 if [ "$2" != "" ]; then
-	cd "$(dirname $0)"
-	rsync -Haurov --exclude=/.git/ --exclude=/node_modules/ . "$2:/home/liar/"
+	cd ..
+	rsync -Haurov --exclude=/.git/ --exclude=/node_modules/ --exclude=/materials/ --exclude=/www/javascript/ ./ "$2:/home/memory/"
+	scp www/javascript/production.js "$2:/home/memory/www/javascript/production.js"
 fi
 # Back to the right pwd
 cd "$olPwd"

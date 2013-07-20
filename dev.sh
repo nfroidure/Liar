@@ -5,6 +5,8 @@
 oldPwd=$(pwd)
 # 
 cd "$(dirname $0)/www";
+# Avoid multiple > addition
+sed -i "s/DEV-->/DEV--/g" index.html
 # Comment RequireJS script tag
 sed -i "s/DEV--/DEV-->/g" index.html
 # Uncomment production script tag
