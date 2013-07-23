@@ -162,8 +162,8 @@ var httpServer=http.createServer(function (request, response) {
 		response.end();
 		return;
 	}
-	// No query params
-	if('search' in parsedUrl) {
+	// No query params instead for manifest.webapp :'(
+	if('search' in parsedUrl&&'/manifest.webapp'!==parsedUrl.pathname) {
 		response.writeHead(401);
 		response.end();
 	}
