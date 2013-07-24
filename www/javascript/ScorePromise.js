@@ -13,7 +13,7 @@
 		this.displayZone=this.view.querySelector('p.text');
 		this.itemsTpls=this.view.querySelectorAll('p.text>span');
 		while(this.displayZone.firstChild)
-			this.displayZone.removeChild(this.display.lastChild);
+			this.displayZone.removeChild(this.displayZone.lastChild);
 		// filling the display zones
 		var item;
 		for(var i=0, j=scores.length; i<j; i++) {
@@ -40,13 +40,16 @@
 
 	ScorePromise.prototype.hide=function () {
 		while(this.displayZone.firstChild)
-			this.displayZone.removeChild(this.display.lastChild);
+			this.displayZone.removeChild(this.displayZone.lastChild);
 		for(var i=0, j=this.itemsTpls.length; i<j; i++)
 			this.displayZone.appendChild(this.itemsTpls[i]);
 	};
 
 	ScorePromise.prototype.loop=function (timeout) {
-		return Promise.elapsed(timeout);
+		var that=this;
+		return Promise.elapsed(timeout).then(function() {
+				that.end=true;
+			});
 	};
 
 // END: Module logic end

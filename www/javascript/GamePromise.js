@@ -100,15 +100,10 @@
 							}));
 						}),
 						WebSocketPromise.getMessagePromise(that.ws,'bet').then(function(msg) {
-							timeLeft=msg.timeLeft;
 							// discount seconds
-							that.clock.firstChild.textContent=msg.timeLeft;
-							timeout=setTimeout(function answerTimeout() {
-								if(timeLeft>0)
-									timeLeft--;
-								that.clock.firstChild.textContent=timeLeft;
-								timeout=setTimeout(arguments.callee,999)
-							},999);
+							return Promise.elapsed(msg.timeLeft*1000,1000).then(null, null,function(n) {
+								that.clock.firstChild.textContent=n;
+							});
 						}),
 						Promise.dumb()),
 					WebSocketPromise.getMessagePromise(that.ws,'scores').then(function(msg) {

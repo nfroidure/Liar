@@ -1,8 +1,8 @@
 // AMD + Global: r.js compatible
 // Use START + END markers to keep module content only
 (function(root,define){ define(['./libs/promise/Promise','./libs/commandor/CommandPromise',
-		'./libs/promise/dom/WebSocketPromise','./ViewPromise'],
-		function(Promise, CommandPromise, WebSocketPromise, ViewPromise) {
+		'./libs/promise/dom/WebSocketPromise','./ViewPromise','./AnsweredPromise'],
+		function(Promise, CommandPromise, WebSocketPromise, ViewPromise, AnsweredPromise) {
 // START: Module logic start
 
 	// AnswerPromise constructor
@@ -25,37 +25,38 @@
 
 	AnswerPromise.prototype.loop=function (timeout) {
 		var that=this;
-		var timeLeft=-1, timeout,
-			answersPromise=WebSocketPromise.getMessagePromise(that.ws,'answers').then(function(msg) {
-				that.end=true;
-				return msg.answers;
-			});
+		// handle the answers reception
+		var answersPromise=WebSocketPromise.getMessagePromise(that.ws,'answers').then(function(msg) {
+			that.end=true;
+			return msg.answers;
+		});
+		// handle the timeout warn
+		var timeoutPromise=WebSocketPromise.getMessagePromise(that.ws,'answer').then(function(msg) {
+			// discount seconds
+			return Promise.elapsed(msg.timeLeft*1000,1000);
+		});
+		// handle the user answer
+		var	answeredPromise=new CommandPromise(that.app.cmdMgr,'send',that.name).then(function(data) {
+			that.ws.send(JSON.stringify({
+				'type':'answer',
+				'answer':data.element['answer'].value
+			}));
+			data.element['answer'].value='';
+		});
+		// show a simple view and wait answers
 		return Promise.any(
-			// Handling the answer
-			new CommandPromise(that.app.cmdMgr,'send',that.name).then(function(data) {
-				that.ws.send(JSON.stringify({
-					'type':'answer',
-					'answer':data.element['answer'].value
-				}));
-				data.element['answer'].value='';
-				// show a simple view and wait answers
-				return Promise.any(answersPromise,
-					new ViewPromise(that.app,'Answered'));
-			}),
-			// handle the timeout warn
-			WebSocketPromise.getMessagePromise(that.ws,'answer').then(function(msg) {
-				timeLeft=msg.timeLeft;
-				// discount seconds
-				that.button.setAttribute('value','Lie ('+msg.timeLeft+')');
-				timeout=setTimeout(function answerTimeout() {
-					if(timeLeft>0)
-						timeLeft--;
-					that.button.setAttribute('value','Lie ('+timeLeft+')');
-					timeout=setTimeout(arguments.callee,999)
-				},999);
-				// wait for answers
-				return answersPromise;
-			})
+			answersPromise,
+			Promise.all(
+				Promise.dumb(),
+				// Begin the discount if not answering
+				timeoutPromise.then(null, null,function(n) {
+					that.button.setAttribute('value','Lie ('+n+')');
+				}),
+				// display the answered view when answered
+				answeredPromise.then(function(){
+					return new AnsweredPromise(that.app,'Answered', timeoutPromise);
+				})
+			)
 		);
 	};
 
