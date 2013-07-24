@@ -1,59 +1,37 @@
 // AMD + Global: r.js compatible
 // Use START + END markers to keep module content only
-(function(root,define){ define(['./libs/promise/Promise',
+(function(root,define){ define(['./libs/promise/Promise','./ViewPromise',
 		'./libs/promise/dom/XHRPromise','./libs/commandor/CommandPromise'],
-	function (Promise, XHRPromise, CommandPromise) {
+	function (Promise, ViewPromise, XHRPromise, CommandPromise) {
 // START: Module logic start
 
 	// NewRoomPromise constructor
-	function NewRoomPromise(app, name, block) {
-		//  Getting view
-		var view=document.getElementById(name);
-		Promise.call(this,function(success,error,progress) {
-			function show() {
-				// Hidding other views
-				Array.prototype.forEach.call(document.querySelectorAll('.view.selected'), function(element) {
-					element.classList.remove('selected');
-				});
-				// Showing current view
-				view.classList.add('selected');
-			}
-			// UI interactions
-			var pool, end=false;
-			function main() {
-				show();
-				pool=Promise.any(
-					// Handling the form
-					new CommandPromise(app.cmdMgr,'send',name).then(function(data) {
-						console.log('datas',data);
-						return new XHRPromise('POST','/rooms.json',JSON.stringify({
-							'name':data.element.elements[0].value,
-							'mode':(data.element.elements[2].checked?1:0)
-						})).then(function() {
-							end=true;
-						});
-					}),
-					// Handling the back button
-					new CommandPromise(app.cmdMgr,'back',name).then(function() {
-						end=true;
-					})
-				);
-				pool.then(function() {
-					if(end)
-						success()
-					else
-						main();
-				});
-			}
-			main();
-			var dispose=function() {
-				pool.dispose();
-			};
-			return dispose;
-		});
+	function NewRoomPromise(app, name) {
+		// Calling parent constructor
+		ViewPromise.call(this, app, name);
 	}
 
-	NewRoomPromise.prototype=Object.create(Promise.prototype);
+	NewRoomPromise.prototype=Object.create(ViewPromise.prototype);
+
+	HomePromise.prototype.loop=function () {
+		var that=this;
+		return Promise.any(
+			// Handling the form
+			new CommandPromise(that.app.cmdMgr,'send',that.name).then(function(data) {
+				console.log('datas',data);
+				return new XHRPromise('POST','/rooms.json',JSON.stringify({
+					'name':data.element.elements[0].value,
+					'mode':(data.element.elements[2].checked?1:0)
+				})).then(function() {
+					that.end=true;
+				});
+			}),
+			// Handling the back button
+			new CommandPromise(that.app.cmdMgr,'back',that.name).then(function() {
+				that.end=true;
+			})
+		);
+	};
 
 // END: Module logic end
 

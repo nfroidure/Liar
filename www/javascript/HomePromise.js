@@ -7,11 +7,19 @@
 
 	// HomePromise constructor
 	function HomePromise(app, name) {
-		//  Getting view elements
-		var view=document.getElementById(name),
-			buttonInstallation=view.querySelector('ul.menu li:nth-child(2) a');
-		buttonInstallation.style.display='none';
+		// Calling parent constructor
+		ViewPromise.call(this, app, name);
+	}
+
+	HomePromise.prototype=Object.create(ViewPromise.prototype);
+
+	HomePromise.prototype.display=function () {
+		var that=this;
+		ViewPromise.prototype.display.call(this);
+		// Registering UI elements
+		this.buttonInstallation=this.view.querySelector('ul.menu li:nth-child(2) a');
 		// Checking installation on Firefox
+		this.buttonInstallation.style.display='none';
 		if(undefined !== navigator.mozApps) {
 			var request = navigator.mozApps.getSelf();
 			request.onsuccess = function() {
@@ -23,56 +31,33 @@
 			request.onerror = function() {
 			};
 		}
-		Promise.call(this,function(success,error,progress) {
-			function show() {
-				// Hidding other views
-				Array.prototype.forEach.call(document.querySelectorAll('.view.selected'), function(element) {
-					element.classList.remove('selected');
-					});
-				// Showing current view
-				view.classList.add('selected');
-			}
-			// UI interactions
-			var pool, end=false;
-			function main() {
-				show();
-				pool=Promise.any(
-					// Handling the install button
-					new CommandPromise(app.cmdMgr,'install',name).then(function() {
-						// Installing the application
-						var manifestUrl = location.href.substring(0, location.href.lastIndexOf('/')) + '/manifest.webapp';
-						var request = window.navigator.mozApps.install(manifestUrl);
-						request.onsuccess = function() {
-							buttonInstallation.style.display='none';
-						};
-						request.onerror = function() {
-						};
-					}),
-					// Handling menu
-					new CommandPromise(app.cmdMgr,'menu',name).then(function(data) {
-						// Loading the selected view
-						return new FutureViewPromise(data.params.view)
-							.then(function(ViewPromise){
-								return new ViewPromise(app,data.params.view);
-							});
-					})
-				);
-				pool.then(function() {
-					if(end)
-						success();
-					else
-						main();
-				});
-			}
-			main();
-			var dispose=function() {
-				pool.dispose();
-			};
-			return dispose;
-		});
-	}
+		
+	};
 
-	HomePromise.prototype=Object.create(Promise.prototype);
+	HomePromise.prototype.loop=function () {
+		var that=this;
+		return Promise.any(
+			// Handling the install button
+			new CommandPromise(that.app.cmdMgr,'install',that.name).then(function() {
+				// Installing the application
+				var manifestUrl = location.href.substring(0, location.href.lastIndexOf('/')) + '/manifest.webapp';
+				var request = window.navigator.mozApps.install(manifestUrl);
+				request.onsuccess = function() {
+					that.buttonInstallation.style.display='none';
+				};
+				request.onerror = function() {
+				};
+			}),
+			// Handling menu
+			new CommandPromise(that.app.cmdMgr,'menu',that.name).then(function(data) {
+				// Loading the selected view
+				return new FutureViewPromise(data.params.view)
+					.then(function(ViewPromise){
+						return new ViewPromise(app,data.params.view);
+					});
+			})
+		);
+	};
 
 // END: Module logic end
 

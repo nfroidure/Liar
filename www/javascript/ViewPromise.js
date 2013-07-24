@@ -7,53 +7,72 @@
 
 	// ViewPromise constructor
 	function ViewPromise(app, name, timeout) {
+		var that=this;
+		// Keeping a ref to the app
+		this.app=app;
+		this.name=name;
 		//  Getting view
-		var view=document.getElementById(name);
+		this.view=document.getElementById(name);
+		// Calling parent constructor
 		Promise.call(this,function(success,error,progress) {
-			function show() {
-				// Hidding other views
-				Array.prototype.forEach.call(document.querySelectorAll('.view.selected'), function(element) {
-					element.classList.remove('selected');
-					});
-				// Showing current view
-				view.classList.add('selected');
-			}
+			var promisePool;
 			// UI interactions
-			var pool, end=false;
+			that.end=false;
 			function main() {
-				show();
-				pool=Promise.any(
-					// Handling the back button
-					new CommandPromise(app.cmdMgr,'back',name).then(function() {
-						end=true;
-					}),
-					// Handling menu
-					new CommandPromise(app.cmdMgr,'menu',name).then(function(data) {
-						// Loading the selected view
-						return new FutureViewPromise(data.params.view).then(function(ViewPromise){
-							return new ViewPromise(app,data.params.view);
-						});
-					}),
-					(timeout?Promise.elapsed(timeout).then(function() {
-						end=true;
-					}):Promise.dumb())
-				);
-				pool.then(function() {
-					if(end)
+				that.display();
+				promisePool=that.loop(timeout);
+				promisePool.then(function() {
+					if(that.end) {
+						that.hide();
 						success();
-					else
+					} else {
 						main();
+					}
 				});
 			}
 			main();
 			var dispose=function() {
-				pool.dispose();
+				promisePool.dispose();
+				that.hide();
 			};
 			return dispose;
 		});
 	}
 
 	ViewPromise.prototype=Object.create(Promise.prototype);
+
+	ViewPromise.prototype.display=function () {
+		// Hidding other views
+		Array.prototype.forEach.call(document.querySelectorAll('.view.selected'), function(element) {
+			element.classList.remove('selected');
+			});
+		// Showing current view
+		this.view.classList.add('selected');
+	};
+
+	ViewPromise.prototype.hide=function () {
+		
+	};
+
+	ViewPromise.prototype.loop=function (timeout) {
+		var that=this;
+		return Promise.any(
+			// Handling the back button
+			new CommandPromise(that.app.cmdMgr,'back',that.name).then(function() {
+				that.end=true;
+			}),
+			// Handling menu
+			new CommandPromise(that.app.cmdMgr,'menu',that.name).then(function(data) {
+				// Loading the selected view
+				return new FutureViewPromise(data.params.view).then(function(ViewPromise){
+					return new ViewPromise(app,data.params.view);
+				});
+			}),
+			(timeout?Promise.elapsed(timeout).then(function() {
+				that.end=true;
+			}):Promise.dumb())
+		);
+	};
 
 // END: Module logic end
 
