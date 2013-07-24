@@ -10,203 +10,182 @@
 
 	// RoomPomise constructor
 	function RoomPromise(app, name, id) {
-		//  Getting view
-		var view=document.getElementById(name);
-		Promise.call(this,function(success,error,progress) {
-			function show() {
-				// Hidding other views
-				Array.prototype.forEach.call(document.querySelectorAll('.view.selected'), function(element) {
-					if(element!==view)
-						element.classList.remove('selected');
-				});
-				// Showing current view
-				if(!view.classList.contains('selected'))
-					view.classList.add('selected');
-				// hidding the button
-				if('webkitNotifications' in window
-					&&window.webkitNotifications.checkPermission()===0) {
-					notifButton.style.display='none';
-				} else {
-					notifButton.style.display='inline-block';
-				}
-			}
-			function updatePlayers() {
-						var h1=view.querySelector('h1');
-						h1.firstChild.textContent=room.name+' ';
-						h1.lastChild.firstChild.textContent=room.players.length+'/6';
-						if(room.players.length>2)
-								{
-								button.setAttribute('disabled','');
-								// on tente d'afficher une notification
-								if('webkitNotifications' in window
-									&&window.webkitNotifications.checkPermission()===0) {
-									var notification = window.webkitNotifications.createNotification('',
-										'Ready to play',
-										'Minimum amount of players reached !');
-									notification.show();
-									}
-								}
-							else
-								button.setAttribute('disabled','disabled');
-			}
-			// UI interactions
-			var pool, end=false, ws, room,
-				chat=view.querySelector('.chat'),
-				field=view.querySelector('input[type="text"]'),
-				button=view.querySelectorAll('p.menu a')[1],
-				notifButton=view.querySelectorAll('p.menu a')[2];
-			// main function
-			function main() {
-				show();
-				// WebSockets ok or network error displayed and exit
-				pool=Promise.all(
-					(ws?
-						new Promise.sure():
-						Promise.any(
-							new WebSocketPromise(null,null,80).then(function(data) {
-								ws=data;
-								var p=WebSocketPromise.getMessagePromise(ws,'connect').then(function(msg){
-									app.user.sessid=msg.sessid;
-									app.user.id=msg.id;
-									var p=WebSocketPromise.getMessagePromise(ws,'room').then(function(msg){
-										if((!msg.room)||msg.room.id!=id) {
-											end=true;
-										} else {
-											ws.addEventListener('message',function(e) { console.log(e.data)
-												if(!e.data)
-													return;
-												var msgCnt=JSON.parse(e.data);
-												if('chat'===msgCnt.type) {
-													(chat.childNodes.length?chat.appendChild(document
-														.createElement('br')):'');
-													chat.appendChild(document.createTextNode(msgCnt.player
-														+': '+msgCnt.message));
-													chat.scrollTop=chat.scrollHeight;
-												} else if('join'===msgCnt.type) {
-													room.players.push(msgCnt.player);
-													(chat.childNodes.length?chat.appendChild(document
-														.createElement('br')):'');
-													chat.appendChild(document.createTextNode(
-														msgCnt.player.name+' join the room.'));
-													chat.scrollTop=chat.scrollHeight;
-													updatePlayers();
-												} else if('leave'===msgCnt.type) {
-													room.players.some(function(player,index) {
-													if(player.id!=msgCnt.player) return false;
-														(chat.childNodes.length?chat.appendChild(document
-															.createElement('br')):'');
-														chat.appendChild(document.createTextNode(player.name
-															+' leaves the room.'));
-														chat.scrollTop=chat.scrollHeight;													
-														room.players.splice(index,1);
-														updatePlayers();
-													});
-												}
+		this.id=id;
+		// Calling parent constructor
+		ViewPromise.call(this, app, name);
+		// Registering UI elements
+		this.chat=this.view.querySelector('.chat'),
+		this.field=this.view.querySelector('input[type="text"]'),
+		this.button=this.view.querySelectorAll('p.menu a')[1],
+		this.notifButton=this.view.querySelectorAll('p.menu a')[2];
+		// Managing the notification button display
+		if('webkitNotifications' in window
+			&&window.webkitNotifications.checkPermission()===0) {
+			this.notifButton.style.display='none';
+		} else {
+			this.notifButton.style.display='inline-block';
+		}
+	}
+
+	RoomPromise.prototype=Object.create(ViewPromise.prototype);
+
+	//RoomPromise.prototype.display=function () {
+	//};
+
+	RoomPromise.prototype.hide=function () {
+		if(this.ws) {
+			this.ws.send(JSON.stringify({
+				'type':'room',
+				'sessid':this.app.user.sessid,
+				'room':null
+			}));
+			this.ws.close();
+		}
+		while(this.chat.firstChild)
+			this.chat.removeChild(this.chat.firstChild);
+	};
+
+	RoomPromise.prototype.loop=function (timeout) {
+		var that=this;
+		return Promise.all(
+			(this.ws?
+				new Promise.sure():
+				Promise.any(
+					new WebSocketPromise(null,null,8125).then(function(data) {
+						that.ws=data;
+						var p=WebSocketPromise.getMessagePromise(that.ws,'connect').then(function(msg){
+							that.app.user.sessid=msg.sessid;
+							that.app.user.id=msg.id;
+							var p=WebSocketPromise.getMessagePromise(that.ws,'room').then(function(msg){
+								if((!msg.room)||msg.room.id!=that.id) {
+									that.end=true;
+								} else {
+									that.ws.addEventListener('message',function(e) { console.log(e.data)
+										if(!e.data)
+											return;
+										var msgCnt=JSON.parse(e.data);
+										if('chat'===msgCnt.type) {
+											(that.chat.childNodes.length?that.chat.appendChild(document
+												.createElement('br')):'');
+											that.chat.appendChild(document.createTextNode(msgCnt.player
+												+': '+msgCnt.message));
+											that.chat.scrollTop=that.chat.scrollHeight;
+										} else if('join'===msgCnt.type) {
+											that.room.players.push(msgCnt.player);
+											(that.chat.childNodes.length?that.chat.appendChild(document
+												.createElement('br')):'');
+											that.chat.appendChild(document.createTextNode(
+												msgCnt.player.name+' join the room.'));
+											that.chat.scrollTop=that.chat.scrollHeight;
+											that.updatePlayers();
+										} else if('leave'===msgCnt.type) {
+											that.room.players.some(function(player,index) {
+											if(player.id!=msgCnt.player) return false;
+												(that.chat.childNodes.length?that.chat.appendChild(document
+													.createElement('br')):'');
+												that.chat.appendChild(document.createTextNode(player.name
+													+' leaves the room.'));
+												that.chat.scrollTop=that.chat.scrollHeight;													
+												that.room.players.splice(index,1);
+												that.updatePlayers();
 											});
 										}
 									});
-									ws.send(JSON.stringify({
-										'type':'room',
-										'room':id
-									}));
-									return p;
-								});
-								ws.send(JSON.stringify({
-									'type':'connect',
-									'name':app.user.name,
-									'gender':app.user.gender
-								}));
-								return p;
-							}),
-						new ViewPromise(app,'Connecting',20000)
-						)
-					),
-					// getting room infos
-					(room?Promise.sure():new XHRPromise('GET','/rooms/'+id+'.json')
-						.then(function(xhr) {
-						room=JSON.parse(xhr.responseText);
-						room.players.push(app.user);
-						updatePlayers();
-					}))
-				).then(function() {
-					if(!(ws&&room)) {
-						return new ViewPromise(app,'Network',3000).then(function() {
-							end=true;
-						});
-					}
-				}).then(function() {
-					show();
-					return Promise.any(
-						// Handling channel join
-						new CommandPromise(app.cmdMgr,'notify',name).then(function() {
-							// asking notification perm
-							window.webkitNotifications.requestPermission();
-							// hidding the button
-							notifButton.style.display='none';
-						}),
-						// Handling start button
-						new CommandPromise(app.cmdMgr,'play',name).then(function() {
-							ws.send(JSON.stringify({
-								'type':'start',
-								'sessid':app.user.sessid
-							}));
-							// wait for the start message
-							return Promise.dumb();
-						}),
-						// Handling game start message
-						WebSocketPromise.getMessagePromise(ws,'start').then(function() {
-							return new GamePromise(app,'Game',ws,room);
-						}),
-						// Handling message send
-						new CommandPromise(app.cmdMgr,'send',name).then(function() {
-							ws.send(JSON.stringify({
-								'type':'chat',
-								'sessid':app.user.sessid,
-								'message':field.value
-							}));
-							field.value='';
-						}),
-						// Handling the back button
-						new CommandPromise(app.cmdMgr,'back',name).then(function() {
-							ws&&ws.close();
-							end=true;
-						}),
-						// Handling connection lost
-						(ws?WebSocketPromise.getClosePromise(ws).then(function() {
-							ws=null;
-							success();
-						}):Promise.sure())
-					);
-				});
-				pool.then(function() {
-					if(end) {
-						if(ws) {
-							ws.send(JSON.stringify({
+								}
+							});
+							that.ws.send(JSON.stringify({
 								'type':'room',
-								'sessid':app.user.sessid,
-								'room':null
+								'room':that.id
 							}));
-						}
-					while(chat.firstChild)
-						chat.removeChild(chat.firstChild);
-						success();
-					} else {
-						main();
-					}
+							return p;
+						});
+						that.ws.send(JSON.stringify({
+							'type':'connect',
+							'name':that.app.user.name,
+							'gender':that.app.user.gender
+						}));
+						return p;
+					}),
+				new ViewPromise(that.app,'Connecting',20000)
+				)
+			),
+			// getting room infos
+			(that.room?Promise.sure():new XHRPromise('GET','/rooms/'+that.id+'.json')
+				.then(function(xhr) {
+				that.room=JSON.parse(xhr.responseText);
+				that.room.players.push(that.app.user);
+				that.updatePlayers();
+			}))
+		).then(function() {
+			if(!(that.ws&&that.room)) {
+				return new ViewPromise(that.app,'Network',3000).then(function() {
+					that.end=true;
 				});
 			}
-			main();
-			var dispose=function() {
-				ws&&ws.close();
-				pool.dispose();
-				while(chat.firstChild)
-					chat.removeChild(chat.firstChild);
-			};
-			return dispose;
+		}).then(function() {
+			that.display();
+			return Promise.any(
+				// Handling channel join
+				new CommandPromise(that.app.cmdMgr,'notify',that.name).then(function() {
+					// asking notification perm
+					window.webkitNotifications.requestPermission();
+					// hidding the button
+					that.notifButton.style.display='none';
+				}),
+				// Handling start button
+				new CommandPromise(that.app.cmdMgr,'play',that.name).then(function() {
+					that.ws.send(JSON.stringify({
+						'type':'start',
+						'sessid':that.app.user.sessid
+					}));
+					// wait for the start message
+					return Promise.dumb();
+				}),
+				// Handling game start message
+				WebSocketPromise.getMessagePromise(that.ws,'start').then(function() {
+					return new GamePromise(that.app,'Game',that.ws,that.room);
+				}),
+				// Handling message send
+				new CommandPromise(that.app.cmdMgr,'send',that.name).then(function() {
+					that.ws.send(JSON.stringify({
+						'type':'chat',
+						'sessid':that.app.user.sessid,
+						'message':that.field.value
+					}));
+					that.field.value='';
+				}),
+				// Handling the back button
+				new CommandPromise(that.app.cmdMgr,'back',that.name).then(function() {
+					that.ws&&that.ws.close();
+					that.end=true;
+				}),
+				// Handling connection lost
+				(that.ws?WebSocketPromise.getClosePromise(that.ws).then(function() {
+					that.ws=null;
+					that.end=true;
+				}):Promise.sure())
+			);
 		});
+	};
+	
+	RoomPromise.prototype.updatePlayers = function () {
+		var h1=this.view.querySelector('h1');
+		h1.firstChild.textContent=this.room.name+' ';
+		h1.lastChild.firstChild.textContent=this.room.players.length+'/6';
+		if(this.room.players.length>1) {
+			this.button.setAttribute('disabled','');
+			// on tente d'afficher une notification
+			if('webkitNotifications' in window
+				&&window.webkitNotifications.checkPermission()===0) {
+				var notification = window.webkitNotifications.createNotification('',
+					'Ready to play',
+					'Minimum amount of players reached !');
+				notification.show();
+			}
+		} else {
+			this.button.setAttribute('disabled','disabled');
+		}
 	}
-
-	RoomPromise.prototype=Object.create(Promise.prototype);
 
 // END: Module logic end
 

@@ -10,6 +10,9 @@
 		this.block=block||false;
 		// Calling parent constructor
 		ViewPromise.call(this, app, name);
+		// Filing the form with current values
+		if(this.app.user&&this.app.user.name)
+			this.view.querySelector('input[type="text"]').value=this.app.user.name;
 	}
 
 	ProfilePromise.prototype=Object.create(ViewPromise.prototype);
@@ -30,7 +33,7 @@
 		return Promise.any(
 			// Handling the form
 			new CommandPromise(that.app.cmdMgr,'send',that.name).then(function(data) {
-				app.user={'name':data.element['username'].value,'gender':-1};
+				that.app.user={'name':data.element['username'].value,'gender':-1};
 				that.end=true;
 			}),
 			// Handling the back button

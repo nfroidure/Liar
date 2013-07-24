@@ -21,10 +21,10 @@
 			function main() {
 				that.display();
 				promisePool=that.loop(timeout);
-				promisePool.then(function() {
+				promisePool.then(function(value) {
 					if(that.end) {
 						that.hide();
-						success();
+						success(value);
 					} else {
 						main();
 					}

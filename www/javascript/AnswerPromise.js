@@ -5,78 +5,59 @@
 		function(Promise, CommandPromise, WebSocketPromise, ViewPromise) {
 // START: Module logic start
 
-	// ProfilePromise constructor
+	// AnswerPromise constructor
 	function AnswerPromise(app, name, ws, question) {
-		//  Getting view
-		var view=document.getElementById(name);
-		Promise.call(this,function(success,error,progress) {
-			function show() {
-				// Hidding other views
-				Array.prototype.forEach.call(document.querySelectorAll('.view.selected'), function(element) {
-					element.classList.remove('selected');
-				});
-				// Showing current view
-				view.classList.add('selected');
-				// Displaying the question
-				view.querySelector('p.text').firstChild.textContent=question;
-			}
-			// UI interactions
-			var pool, end=false,
-				button=view.querySelector('input[type="submit"]'),
-				timeLeft=-1, timeout, answers,
-				answersPromise=WebSocketPromise.getMessagePromise(ws,'answers').then(function(msg) {
-					answers=msg.answers;
-					end=true;
-				});
-			function main() {
-				show();
-				pool=Promise.any(
-				// Handling the answer
-					new CommandPromise(app.cmdMgr,'send',name).then(function(data) {
-						ws.send(JSON.stringify({
-							'type':'answer',
-							'answer':data.element['answer'].value
-						}));
-					data.element['answer'].value='';
-					// show a simple view and wait answers
-					return Promise.any(answersPromise,
-						new ViewPromise(app,'Answered'));
-					}),
-					// handle the timeout warn
-					WebSocketPromise.getMessagePromise(ws,'answer').then(function(msg) {
-						timeLeft=msg.timeLeft;
-						// discount seconds
-						button.setAttribute('value','Lie ('+msg.timeLeft+')');
-						timeout=setTimeout(function answerTimeout() {
-							if(timeLeft>0)
-								timeLeft--;
-							button.setAttribute('value','Lie ('+timeLeft+')');
-							timeout=setTimeout(arguments.callee,999)
-						},999);
-						// wait for answers
-						return answersPromise;
-					}));
-				pool.then(function() {
-					if(end) {
-						button.setAttribute('value','Lie');
-						clearTimeout(timeout);
-						success(answers);
-					}
-					else
-						main();
-				});
-			}
-			main();
-			var dispose=function() {
-				pool.dispose();
-				clearTimeout(timeout);
-				button.setAttribute('value','Lie');
-			};
-			return dispose;
-		});
+		this.ws=ws;
+		// Calling parent constructor
+		ViewPromise.call(this, app, name);
+		// Registering UI elements
+		this.button=this.view.querySelector('input[type="submit"]');
+		// Displaying the question
+		this.view.querySelector('p.text').firstChild.textContent=question;
 	}
 
-	AnswerPromise.prototype=Object.create(Promise.prototype);
+	AnswerPromise.prototype=Object.create(ViewPromise.prototype);
+
+	AnswerPromise.prototype.hide=function () {
+		clearTimeout(this.timeout);
+		this.button.setAttribute('value','Lie');
+	};
+
+	AnswerPromise.prototype.loop=function (timeout) {
+		var that=this;
+		var timeLeft=-1, timeout,
+			answersPromise=WebSocketPromise.getMessagePromise(that.ws,'answers').then(function(msg) {
+				that.end=true;
+				return msg.answers;
+			});
+		return Promise.any(
+			// Handling the answer
+			new CommandPromise(that.app.cmdMgr,'send',that.name).then(function(data) {
+				that.ws.send(JSON.stringify({
+					'type':'answer',
+					'answer':data.element['answer'].value
+				}));
+				data.element['answer'].value='';
+				// show a simple view and wait answers
+				return Promise.any(answersPromise,
+					new ViewPromise(that.app,'Answered'));
+			}),
+			// handle the timeout warn
+			WebSocketPromise.getMessagePromise(that.ws,'answer').then(function(msg) {
+				timeLeft=msg.timeLeft;
+				// discount seconds
+				that.button.setAttribute('value','Lie ('+msg.timeLeft+')');
+				timeout=setTimeout(function answerTimeout() {
+					if(timeLeft>0)
+						timeLeft--;
+					that.button.setAttribute('value','Lie ('+timeLeft+')');
+					timeout=setTimeout(arguments.callee,999)
+				},999);
+				// wait for answers
+				return answersPromise;
+			})
+		);
+	};
 
 // END: Module logic end
 

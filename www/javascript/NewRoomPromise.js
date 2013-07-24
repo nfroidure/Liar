@@ -13,12 +13,11 @@
 
 	NewRoomPromise.prototype=Object.create(ViewPromise.prototype);
 
-	HomePromise.prototype.loop=function () {
+	NewRoomPromise.prototype.loop=function () {
 		var that=this;
 		return Promise.any(
 			// Handling the form
 			new CommandPromise(that.app.cmdMgr,'send',that.name).then(function(data) {
-				console.log('datas',data);
 				return new XHRPromise('POST','/rooms.json',JSON.stringify({
 					'name':data.element.elements[0].value,
 					'mode':(data.element.elements[2].checked?1:0)

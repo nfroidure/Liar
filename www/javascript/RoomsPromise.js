@@ -7,71 +7,67 @@
 		ViewPromise, FutureViewPromise, RoomPromise) {
 // START: Module logic start
 
-	// RoomsPomise constructor
 	function RoomsPromise(app, name) {
-		//  Getting view
-		var view=document.getElementById(name);
-		Promise.call(this,function(success,error,progress) {
-			function show() {
-				// Hidding other views
-				Array.prototype.forEach.call(document.querySelectorAll('.view.selected'),
-					function(element) {
-						element.classList.remove('selected');
-					});
-				// Showing current view
-				view.classList.add('selected');
-			}
-			// UI interactions
-			var pool, end=false, rooms,
-				tbody=document.querySelector('tbody'),
-				trTpl=tbody.firstChild;
-			tbody.removeChild(trTpl);
-			// roooms update
-			function getRoomsUpdatePromise() {
-				return new XHRPromise('GET','/rooms.json',true).then(function(xhr){
-					rooms=JSON.parse(xhr.responseText);
-					rooms.forEach(function(room) {
-						var tr = trTpl.cloneNode(true);
-						tr.firstChild.firstChild.setAttribute('href',
-							trTpl.firstChild.firstChild.getAttribute('href')+room.id);
-						if(room.state)
-							tr.firstChild.firstChild.setAttribute('disabled','disabled');
-						tr.firstChild.firstChild.firstChild.textContent=room.name;
-						tr.childNodes[1].firstChild.textContent=room.players+'/6';
-						tr.childNodes[2].firstChild.textContent=room.mode;
-						tbody.appendChild(tr);
-					});
-				})
-			}
-			function empty() {
-				while(tbody.firstChild)
-					tbody.removeChild(tbody.firstChild);
-				}
-			// main function
-			function main() {
-				// Username ok or view profile displayed
-				pool=Promise.all(
-					(app.user&&app.user.name?
+		// Calling parent constructor
+		ViewPromise.call(this, app, name);
+		// Registering UI elements
+		this.tbody=document.querySelector('tbody'),
+		this.trTpl=this.tbody.firstChild;
+		this.tbody.removeChild(this.trTpl);
+	}
+
+	RoomsPromise.prototype=Object.create(ViewPromise.prototype);
+
+	RoomsPromise.prototype.reset=function () {
+		while(this.tbody.firstChild)
+			this.tbody.removeChild(this.tbody.firstChild);
+	};
+
+	RoomsPromise.prototype.hide=function () {
+		this.reset();
+		this.tbody.appendChild(trTpl);
+	};
+
+	RoomsPromise.prototype.loop=function (timeout) {
+		var that=this;
+		// roooms update
+		function getRoomsUpdatePromise() {
+			return new XHRPromise('GET','/rooms.json',true).then(function(xhr){
+				that.reset();
+				var rooms=JSON.parse(xhr.responseText);
+				rooms.forEach(function(room) {
+					var tr = that.trTpl.cloneNode(true);
+					tr.firstChild.firstChild.setAttribute('href',
+						that.trTpl.firstChild.firstChild.getAttribute('href')+room.id);
+					if(room.state)
+						tr.firstChild.firstChild.setAttribute('disabled','disabled');
+					tr.firstChild.firstChild.firstChild.textContent=room.name;
+					tr.childNodes[1].firstChild.textContent=room.players+'/6';
+					tr.childNodes[2].firstChild.textContent=room.mode;
+					that.tbody.appendChild(tr);
+				});
+			});
+		}
+		return Promise.all(
+					(that.app.user&&that.app.user.name?
 						Promise.sure():
-						new ProfilePromise(app,'Profile',true)),
+						new ProfilePromise(that.app,'Profile',true)),
 					getRoomsUpdatePromise()
 				).then(function() {
-					show();
+					that.display();
 					return Promise.any(
 						// Handling channel join
-						new CommandPromise(app.cmdMgr,'join',name).then(function(data) {
-							return new RoomPromise(app,'Room',data.params.room);
+						new CommandPromise(that.app.cmdMgr,'join',that.name).then(function(data) {
+							return new RoomPromise(that.app,'Room',data.params.room);
 						}),
 						// Handling channel list refresh
-						new CommandPromise(app.cmdMgr,'refresh',name).then(function() {
-							return getRoomsUpdatePromise();
-						}),
+						new CommandPromise(that.app.cmdMgr,'refresh',that.name),
 						// Handling the back button
-						new CommandPromise(app.cmdMgr,'back',name).then(function() {
-							end=true;
+						new CommandPromise(that.app.cmdMgr,'back',that.name).then(function() {
+							that.end=true;
 						}),
 						// Handling menu
-						new CommandPromise(app.cmdMgr,'menu',name).then(function(data) {
+						new CommandPromise(that.app.cmdMgr,'menu',that.name).then(function(data) {
 							// Loading the selected view
 							return new FutureViewPromise(data.params.view)
 								.then(function(ViewPromise){
@@ -80,26 +76,7 @@
 						})
 					)
 				});
-			pool.then(function() {
-				empty();
-				if(end) {
-					tbody.appendChild(trTpl);
-					success();
-				}
-				else
-					main();
-			});
-			}
-			main();
-			var dispose=function() {
-				pool.dispose();
-			};
-			return dispose;
-		});
-	}
-
-	RoomsPromise.prototype=Object.create(Promise.prototype);
-
+	};
 
 // END: Module logic end
 
