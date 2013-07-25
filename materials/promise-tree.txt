@@ -1,0 +1,26 @@
+HomeViewPromise
+:any
+|-- RoomsViewPromise
+|-- :all
+|-- -- RoomsListXHRPromise
+|-- -- UserProfilePromise
+|-- :then, any
+|-- -- RefreshRoomsPromise
+|-- -- NewRoomPromise :success
+|-- -- EnterRoomPromise
+|-- -- :any
+|-- -- -- SendChatMessagePromise
+|-- -- -- ReceiveChatMessagePromise
+|-- -- -- ReceiveGameReadyPromise
+|-- -- -- StartGamePromise
+|-- -- -- :any
+|-- -- -- -- (..)
+|-- -- -- ExitRoomPromise :success
+|-- -- BackButtonPromise :success
+|-- OptionsViewPromise
+|-- :any
+|-- -- OptionsFormSubmissionPromise :success
+|-- -- BackButtonPromise :success
+|-- AboutViewPromise
+|-- :any
+|-- -- BackButtonPromise :success
