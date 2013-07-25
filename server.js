@@ -22,6 +22,8 @@ const MIME_TYPES={
 	'csv': 'text/csv',
 	'webapp':'application/x-web-app-manifest+json'
 	},
+	MIN_PLAYERS=2,
+	NUM_ROUNDS=2,
 // Room statuses
 	WAIT_ANSWER=1,
 	CLOSING_ANSWERS=2,
@@ -163,6 +165,7 @@ var httpServer=http.createServer(function (request, response) {
 		return;
 	}
 	// No query params instead for manifest.webapp :'(
+	// Bug : https://bugzilla.mozilla.org/show_bug.cgi?id=897226
 	if('search' in parsedUrl&&'/manifest.webapp'!==parsedUrl.pathname) {
 		response.writeHead(401);
 		response.end();
@@ -392,7 +395,7 @@ wsServer.on('request', function(request) {
 					if(!(connections[sessid]&&connections[sessid].room))
 						return;
 					// checking if start is possible
-					if(connections[sessid].room.players.length<3
+					if(connections[sessid].room.players.length<MIN_PLAYERS
 						||connections[sessid].room.game)
 						return;
 					// setting the game
@@ -426,7 +429,7 @@ wsServer.on('request', function(request) {
 							.replace('<','&lt').replace('>','&gt').replace('"','&quot;'),
 						'player':player.id,'points':0});
 					// if enought answers, start the timeout
-					if(room.game.answers.length>2&&!(room.game.state&CLOSING_ANSWERS)) {
+					if(room.game.answers.length>=MIN_PLAYERS&&!(room.game.state&CLOSING_ANSWERS)) {
 						room.game.state=CLOSING_ANSWERS;
 						// sending the answer countdown
 						roomsConnects[connections[sessid].room.id].forEach(function(destId) {
@@ -530,7 +533,7 @@ wsServer.on('request', function(request) {
 								);
 							});
 							// next round if some points still left
-							if(room.game.round<5&&room.players.some(function(player){
+							if(room.game.round<NUM_ROUNDS&&room.players.some(function(player){
 								return !!player.points;
 							})) {
 								setTimeout(function(){
