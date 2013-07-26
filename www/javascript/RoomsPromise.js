@@ -25,7 +25,7 @@
 
 	RoomsPromise.prototype.hide=function () {
 		this.reset();
-		this.tbody.appendChild(trTpl);
+		this.tbody.appendChild(this.trTpl);
 	};
 
 	RoomsPromise.prototype.loop=function (timeout) {
