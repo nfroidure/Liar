@@ -164,7 +164,7 @@ var httpServer=http.createServer(function (request, response) {
 		response.end();
 		return;
 	}
-	// No query params instead for manifest.webapp :'(
+	// No query params except for manifest.webapp :'(
 	// Bug : https://bugzilla.mozilla.org/show_bug.cgi?id=897226
 	if(parsedUrl.search&&'/manifest.webapp'!==parsedUrl.pathname) {
 		response.writeHead(401);
@@ -194,8 +194,10 @@ var httpServer=http.createServer(function (request, response) {
 				response.end();
 				throw Error('Unsupported MIME type ('+ext+')');
 			}
-			headers['Content-Type']=MIME_TYPES[ext];
+			headers['Content-Type']=MIME_TYPES[ext]+(MIME_TYPES[ext].indexOf('text/')?'; charset=UTF-8':'');
 			headers['Content-Length']=result.size;
+			headers['Vary']='Accept-Encoding';
+			headers['Cache-Control']='public, max-age=864000';
 			// Looking for ranged requests
 			if(request.headers.range) {
 				var chunks = request.headers.range.replace(/bytes=/, "").split("-");
@@ -233,8 +235,7 @@ var httpServer=http.createServer(function (request, response) {
 					ofstream.pipe('gzip'===headers['Content-Encoding']?
 							zlib.createGzip():zlib.createDeflate())
 						.pipe(response);
-				}
-				else {
+				} else {
 					ofstream.pipe(response);
 				}
 			} else {
@@ -243,7 +244,7 @@ var httpServer=http.createServer(function (request, response) {
 				response.end();
 			}
 		}
-	); 
+	);
 }).listen(port);
 
 console.log('Server started on http://'+domain+':'+port+'/, '
