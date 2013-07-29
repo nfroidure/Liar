@@ -166,7 +166,7 @@ var httpServer=http.createServer(function (request, response) {
 	}
 	// No query params instead for manifest.webapp :'(
 	// Bug : https://bugzilla.mozilla.org/show_bug.cgi?id=897226
-	if('search' in parsedUrl&&'/manifest.webapp'!==parsedUrl.pathname) {
+	if(parsedUrl.search&&'/manifest.webapp'!==parsedUrl.pathname) {
 		response.writeHead(401);
 		response.end();
 	}
