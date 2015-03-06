@@ -1,7 +1,7 @@
 # Liar : A Multiplayer game full of lies :)
 
 ## Play
-You can try the game here : http://liar.insertafter.com/index.html
+You can try [the game here](http://liar.insertafter.com/index.html).
 
 ## Synopsis
 You've got 10 points for 5 questions. The computer show a general culture question, players invent an answer.
