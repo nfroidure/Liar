@@ -7,7 +7,8 @@ var http=require('http'),
 	zlib = require('zlib');
 
 // Constants
-const MIME_TYPES={
+const MIME_TYPES = {
+	'txt':'text/plain',
 	'html':'text/html',
 	'js':'text/javascript',
 	'manifest':'text/cache-manifest',

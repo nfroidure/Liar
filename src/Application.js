@@ -17,10 +17,18 @@ function Application() {
 
 Application.prototype.loadView = function(view) {
   var _this = this;
+  _this.trackEvent('view', view);
   return new FutureViewPromise(view).then(function(AViewPromise){
     AViewPromise = AViewPromise || ViewPromise;
     return new AViewPromise(_this, view);
   });
 }
+
+// GA Tracking
+Application.prototype.trackEvent = function() {
+  if('function' === typeof window.ga) {
+    ga.apply(null, ['send', 'event'].concat([].slice.call(arguments, 0)));
+  }
+};
 
 new Application();
