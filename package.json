@@ -1,0 +1,32 @@
+{
+  "name": "Liar",
+  "version": "1.0.0",
+  "description": "Be the best lier.",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "browserify src/Application.js > www/javascript/production.js",
+    "publish": "buildbranch gh-pages www liar.insertafter.com",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nfroidure/Liar.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/nfroidure/Liar/issues"
+  },
+  "homepage": "https://github.com/nfroidure/Liar",
+  "devDependencies": {
+    "browserify": "^9.0.3"
+  },
+  "dependencies": {
+    "commandor": "^0.1.2",
+    "ia-promise": "git://github.com/nfroidure/Promise",
+    "sounds": "^1.0.2",
+    "websocket": "^1.0.17"
+  }
+}

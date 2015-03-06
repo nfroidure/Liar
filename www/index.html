@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html manifest="application.manifest" >
+<html>
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 	<title>Liar : Fool or be fooled !</title>
@@ -10,10 +10,6 @@
 		alert('Ooops, you are using an old browser. Please come back with a more recent one.');
 		document.location.href="http://browsehappy.com/";
 	</script><![endif]-->
-	<!-- Requirejs : uncomment for development DEV-->
-	<script data-main="javascript/Application"
-		src="javascript/libs/requirejs/require.js" type="text/javascript"></script>
-	<!-- -->
 	<link rel="icon" type="image/png" href="images/favicon.png" />
 </head>
 <body>
@@ -22,19 +18,19 @@
 		<div class="view" id="Home">
 			<h1>Liar</h1>
 			<ul class="menu">
-				<li><a href="app:Home/menu?view=Rooms"
+				<li><a href="app:Home_menu?view=Rooms"
 					title="Jouer en solo">Play</a></li>
-				<li><a href="app:Home/install"
+				<li><a href="app:Home_install"
 					title="Install the application">Install</a></li>
-				<li><a href="app:Home/menu?view=Options"
+				<li><a href="app:Home_menu?view=Options"
 					title="Manage game options">Options</a></li>
-				<li><a href="app:Home/menu?view=About"
+				<li><a href="app:Home_menu?view=About"
 					title="Learn more about this game">About</a></li>
 			</ul>
 		</div>
 		<div class="view" id="Options">
 			<h1>Options</h1>
-			<form action="app:Options/send">
+			<form action="app:Options_send">
 				<p>
 					<label>Sound&nbsp;:<br />
 						<select id="sounds">
@@ -44,7 +40,7 @@
 					<br /><br />
 					<label><input type="checkbox" value="1" id="fullscreen" /> Fullscreen</label>
 					<br /><br />
-					<input type="submit" value="Cancel" formaction="app:Options/back" />
+					<input type="submit" value="Cancel" formaction="app:Options_back" />
 					<input type="submit" value="Save" />
 				</p>
 			</form>
@@ -68,7 +64,7 @@
 				<li>Other sounds&nbsp;: <a href="http://opengameart.org/users/dklon"
 					title="View his website">Devin Watson</a></li>
 			</ul>
-			<p class="menu"><a href="app:About/back" title="Back to home">Back</a></p>
+			<p class="menu"><a href="app:About_back" title="Back to home">Back</a></p>
 		</div>
 		<div class="view" id="About">
 			<h1>More games</h1>
@@ -76,25 +72,31 @@
 				Here are a few game by the same author. Give a try !
 			</p>
 			<ul class="text">
-				<li><a href="http://www.sumure.com" title="Play Sumuraÿ">Sumuraÿ</a>: An addictive game where you must find sums.</li>
-				<li><a href="http://breakit.elitwork.com" title="Play BreakIt">BreakIt</a>: A simple breakout-like game.</li>
+				<li>
+					<a href="http://sumuray.insertafter.com" title="Play Sumuraÿ">Sumuraÿ</a>:
+					An addictive game where you must find sums.
+				</li>
+				<li>
+					<a href="http://breakit.insertafter.com" title="Play BreakIt">BreakIt</a>:
+					A simple breakout-like game.
+				</li>
 			</p>
-			<p class="menu"><a href="app:About/back" title="Back to home">Back</a></p>
+			<p class="menu"><a href="app:About_back" title="Back to home">Back</a></p>
 		</div>
 		<div class="view" id="Profile">
 			<h1>Profil</h1>
-			<form action="app:Profile/send" data-change="app:Profile/change">
+			<form action="app:Profile_send">
 				<p>
 					<label>Name&nbsp;:<br />
 					<input type="text" name="username" required="required"
 						pattern="([^<>&quot;]+)" placeholder="Your name" maxlength="15" />
 					<br /><br />
 					Gender&nbsp;:<br />
-					<label><input type="radio" name="genre" value="-1" checked="checked" />&nbsp;No matter</label>
-					<label><input type="radio" name="genre" value="1" />&nbsp;Male</label><br/>
-					<label><input type="radio" name="genre" value="0" />&nbsp;Female</label>
+					<label><input type="radio" name="gender" value="-1" checked="checked" />&nbsp;No matter</label><br/>
+					<label><input type="radio" name="gender" value="1" />&nbsp;Male</label><br/>
+					<label><input type="radio" name="gender" value="0" />&nbsp;Female</label>
 					<br /><br />
-					<input type="submit" value="Cancel" formaction="app:Profile/back" />
+					<input type="submit" value="Cancel" formaction="app:Profile_back" />
 					<input type="submit" value="Save" />
 				</p>
 			</form>
@@ -107,18 +109,18 @@
 					<th>Players</th>
 					<th>Type</th>
 				</tr></thead>
-				<tbody><tr><td><a href="app:Rooms/join?room=" title="Join this room">Room 1</a></td><td>0/6</td><td>Normal</td></tr></tbody>
+				<tbody><tr><td><a href="app:Rooms_join?room=" title="Join this room">Room 1</a></td><td>0/6</td><td>Normal</td></tr></tbody>
 			</table>
 			<p class="menu">
-				<a href="app:Rooms/back" title="Back to home">Back</a>
-				<a href="app:Rooms/menu?view=Profile" title="Change your profile">Profile</a>
-				<a href="app:Rooms/menu?view=NewRoom" title="Create a new room">New</a>
-				<a href="app:Rooms/refresh" title="Refresh the room list">Refresh</a>
+				<a href="app:Rooms_back" title="Back to home">Back</a>
+				<a href="app:Rooms_menu?view=Profile" title="Change your profile">Profile</a>
+				<a href="app:Rooms_menu?view=NewRoom" title="Create a new room">New</a>
+				<a href="app:Rooms_refresh" title="Refresh the room list">Refresh</a>
 			</p>
 		</div>
 		<div class="view" id="NewRoom">
 			<h1>Create a Room</h1>
-			<form action="app:NewRoom/send" data-change="app:NewRoom/change">
+			<form action="app:NewRoom_send" data-change="app:NewRoom_change">
 				<p>
 					<label>Name&nbsp;:<br />
 					<input type="text" name="name" required="required"
@@ -128,7 +130,7 @@
 					<label><input type="radio" name="mode" value="-1" checked="checked" />&nbsp;Normal</label>
 					<label><input type="radio" name="mode" value="1" disabled="disabled"/>&nbsp;Arcade</label>
 					<br /><br />
-					<input type="submit" value="Cancel" formaction="app:NewRoom/back" />
+					<input type="submit" value="Cancel" formaction="app:NewRoom_back" />
 					<input type="submit" value="Save" />
 				</p>
 			</form>
@@ -144,7 +146,7 @@
 		<div class="view" id="Room">
 			<h1>Room name <span>0/3</span></h1>
 			<p class="chat"></p>
-			<form action="app:Room/send">
+			<form action="app:Room_send">
 				<p>
 					<label>Message&nbsp;:<br />
 					<input type="text" name="message" required="required"
@@ -154,9 +156,9 @@
 				</p>
 			</form>
 			<p class="menu">
-				<a href="app:Room/back" title="Retour à la liste des salons">Quitter</a>
-				<a href="app:Room/play" title="Démarrer la partie" disabled="disabled">Play</a>
-				<a href="app:Room/notify" title="Notify me when the game can start">Notify me</a>
+				<a href="app:Room_back" title="Retour à la liste des salons">Quitter</a>
+				<a href="app:Room_play" title="Démarrer la partie" disabled="disabled">Play</a>
+				<a href="app:Room_notify" title="Notify me when the game can start">Notify me</a>
 			</p>
 		</div>
 		<div class="view" id="Game">
@@ -168,14 +170,14 @@
 			<h1>Round 1</h1>
 			<p class="text">Who was the 15st president of the USA ?</p>
 			<p class="text"><span><strong>John Kennedy</strong> - Bet :
-				<a href="app:Game/bet?points=1&amp;answer=" title="Bet 1pt it's true">1pt</a>
-				<a href="app:Game/bet?points=2&amp;answer=" title="Bet 2pt it's true">2pt</a>
-				<a href="app:Game/bet?points=3&amp;answer=" title="Bet 3pt it's true">3pt</a>
+				<a href="app:Game_bet?points=1&amp;answer=" title="Bet 1pt it's true">1pt</a>
+				<a href="app:Game_bet?points=2&amp;answer=" title="Bet 2pt it's true">2pt</a>
+				<a href="app:Game_bet?points=3&amp;answer=" title="Bet 3pt it's true">3pt</a>
 			</span><span><strong>John Kennedy</strong> - <span>Paul lie (+5pts)</span></span></p>
 		</div>
 		<div class="view" id="Answer">
 			<h1>Enter your lie</h1>
-			<form action="app:Answer/send">
+			<form action="app:Answer_send">
 				<p class="text">Who was the 15st president of the USA ?</p>
 				<p>
 					<label>Answer&nbsp;:<br />
@@ -201,8 +203,6 @@
 			</span></p>
 		</div>
 	</div><div class="separator"></div></div>
-	<!-- Production : comment for development PROD--
 	<script src="javascript/production.js" type="text/javascript"></script>
-	<!-- -->
 </body>
 </html>
