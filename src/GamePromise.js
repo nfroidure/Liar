@@ -40,6 +40,7 @@ GamePromise.prototype.hide = function () {
 
 GamePromise.prototype.loop = function (timeout) {
 	var _this = this;
+	var everyBetLinks = [];
 	return Promise.any(
 		// Handling a round
 		WebSocketPromise.getMessagePromise(_this.ws, 'round').then(function(msg){
@@ -52,25 +53,26 @@ GamePromise.prototype.loop = function (timeout) {
 			var h1=_this.view.querySelector('h1');
 			h1.firstChild.textContent = 'Round #' + msg.round;
 			// ask an answer AND get the others answers
-			return	new AnswerPromise(app, 'Answer', _this.ws, msg.question).then(function(answers) {
+			return	new AnswerPromise(_this.app, 'Answer', _this.ws, msg.question).then(function(answers) {
 				for(var i = answers.length-1; i >= 0; i--) {
 					var bet = _this.betTpl.cloneNode(true);
 					bet.firstChild.firstChild.textContent = '- ' + answers[i].answer;
 					var leftPoints = parseInt(_this.points.firstChild.textContent, 10);
 					var betLinks = bet.querySelectorAll('a');
+					everyBetLinks = everyBetLinks.concat([].slice.call(betLinks, 0));
 					if(leftPoints >= 1) {
 						betLinks[0].setAttribute('href', betLinks[0].getAttribute('href') + answers[i].id);
 						betLinks[0].removeAttribute('disabled');
 					} else {
 						betLinks[0].setAttribute('disabled','disabled');
 					}
-					if(leftPoints>=2) {
+					if(leftPoints >= 2) {
 						betLinks[1].setAttribute('href', betLinks[1].getAttribute('href') + answers[i].id);
 						betLinks[1].removeAttribute('disabled');
 					} else {
 						betLinks[1].setAttribute('disabled','disabled');
 					}
-					if(leftPoints>=3) {
+					if(leftPoints >= 3) {
 						betLinks[2].setAttribute('href', betLinks[2].getAttribute('href') + answers[i].id);
 						betLinks[2].removeAttribute('disabled');
 					} else {
@@ -82,19 +84,24 @@ GamePromise.prototype.loop = function (timeout) {
 			_this.clock.firstChild.textContent = '-';
 			});
 		}).then(function() {
+			var betPromise = new CommandPromise(_this.app.cmdMgr, 'bet', _this.name).then(function(data) {
+				_this.points.firstChild.textContent=
+					parseInt(_this.points.firstChild.textContent, 10) -
+					parseInt(data.params.points, 10);
+				_this.ws.send(JSON.stringify({
+					type: 'bet',
+					answer: data.params.answer,
+					bet: data.params.points
+				}));
+			});
 			_this.display();
 			// ask a bet and wait for results even if no bet
 			return Promise.any(
 				Promise.all(
-					new CommandPromise(_this.app.cmdMgr, 'bet', _this.name).then(function(data) {
-						_this.points.firstChild.textContent=
-							parseInt(_this.points.firstChild.textContent, 10) -
-							parseInt(data.params.points, 10);
-						_this.ws.send(JSON.stringify({
-							type: 'bet',
-							answer: data.params.answer,
-							bet: data.params.points
-						}));
+					betPromise.then(function() {
+						everyBetLinks.forEach(function(betLink) {
+							betLink.setAttribute('disabled','disabled');
+						});
 					}),
 					WebSocketPromise.getMessagePromise(_this.ws, 'bet').then(function(msg) {
 						// discount seconds
@@ -133,7 +140,7 @@ GamePromise.prototype.loop = function (timeout) {
 		// Handling the end
 		WebSocketPromise.getMessagePromise(_this.ws, 'end').then(function(msg){
 			// show score view with timeout then end
-			return new ScorePromise(app, 'Score', 7000, msg.scores.map(function(score){
+			return new ScorePromise(_this.app, 'Score', 7000, msg.scores.map(function(score){
 				_this.room.players.some(function(player){
 					if(player.id == score.player) {
 						score.player = player.name;

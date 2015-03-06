@@ -203,7 +203,7 @@ var httpServer=http.createServer(function (request, response) {
 				var chunks = request.headers.range.replace(/bytes=/, "").split("-");
 				start = parseInt(chunks[0],10);
 				end =  chunks[1] ? parseInt(chunks[1], 10) :
-					headers['Content-Length']-1; 
+					headers['Content-Length']-1;
 				headers['Content-Range'] = 'bytes ' + start + '-' + end + '/'
 					+ (headers['Content-Length']);
 				headers['Accept-Ranges'] = 'bytes';
@@ -635,11 +635,17 @@ function newRound(room) {
 		});
 		res.on('end', function (chunk) {
 			console.log(body);
-			var result=/^((?:[0-9]+)(?:\.[0-9]+|)(?:e(?:\+|\-)[0-9]+|)) (.*)$/.exec(body);
+			var result = /^((?:[0-9]+)(?:\.[0-9]+|)(?:e(?:\+|\-)[0-9]+|)) (.*)$/.exec(body);
+			if(!result) {
+				return newRound();
+			}
 			// store the right answer
-			room.game.answers.push({'answer':body.replace('&','&amp;')
+			room.game.answers.push({
+				answer: body.replace('&','&amp;')
 					.replace('<','&lt').replace('>','&gt').replace('"','&quot;'),
-				'player':0, 'points':0});
+				player: 0,
+				points: 0
+			});
 			// sending the question to each player in the room
 			roomsConnects[room.id].forEach(function(destId) {
 				connections[destId].connection.sendUTF(
