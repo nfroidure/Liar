@@ -20,11 +20,13 @@ ProfilePromise.prototype.display = function () {
 	// if profile form MUST be filled, hiddin cancel button
 	if(this.block) {
 		this.view.querySelector('input[formaction]').setAttribute('style', 'display:none');
+		this.view.querySelector('input[formaction]').setAttribute('disabled', 'disabled');
 	}
 };
 
 ProfilePromise.prototype.hide = function () {
 	this.view.querySelector('input[formaction]').removeAttribute('style');
+	this.view.querySelector('input[formaction]').removeAttribute('disabled');
 };
 
 ProfilePromise.prototype.loop = function () {
@@ -40,7 +42,7 @@ ProfilePromise.prototype.loop = function () {
 		}),
 		// Handling the back button
 		new CommandPromise(_this.app.cmdMgr, 'back', _this.name).then(function() {
-			_this.end = true;
+			_this.end = !this.block;
 		})
 	);
 };

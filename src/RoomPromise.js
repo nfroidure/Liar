@@ -2,12 +2,9 @@ var Promise = require('ia-promise');
 var XHRPromise = require('./XHRPromise');
 var WebSocketPromise = require('./WebSocketPromise');
 var CommandPromise = require('./CommandPromise');
-var ProfilePromise = require('./ProfilePromise');
 var GamePromise = require('./GamePromise');
 var ViewPromise = require('./ViewPromise');
 var FutureViewPromise = require('./FutureViewPromise');
-var AnswerPromise = require('./AnswerPromise');
-var ScorePromise = require('./ScorePromise');
 
 // RoomPomise constructor
 function RoomPromise(app, name, id) {
