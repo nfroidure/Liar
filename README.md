@@ -1,5 +1,7 @@
 # Liar : A Multiplayer game full of lies :)
 
+** Abandonated: ** I'm not doing to maintain this project anymore, i'll just leave it here for historical reasons. Feel free to reuse it according to its license.
+
 ## Play
 You can try [the game here](http://liar.insertafter.com/index.html).
 
